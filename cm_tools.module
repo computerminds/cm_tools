@@ -1,0 +1,51 @@
+<?php
+/**
+ * @file
+ * The Computerminds tools module.
+ *
+ * We'll try to keep this file as lean as possible, and do as much as possible
+ * in includes.
+ */
+
+/**
+ * Implements hook_theme().
+ */
+function cm_tools_theme($existing, $type, $theme, $path) {
+  $items = array(
+    'cm_tools_html_wrapper' => array(
+	  'render element' => 'element',
+      'file' => 'cm_tools.theme.inc',
+	),
+  );
+  return $items;
+}
+
+/**
+ * Return a render array that wraps the given render array in a given HTML tag.
+ * 
+ * @see theme_cm_tools_html_wrapper.
+ */
+function cm_tools_html_wrapper($render, $tag = 'div', $classes = array(), $id = '') {
+  $wrapped = array(
+    $render,
+    '#theme_wrappers' => array('cm_tools_html_wrapper'),
+    '#tag' => $tag,
+    '#attributes' => array(),
+    '#pre_render' => array('drupal_pre_render_conditional_comments'),
+  );
+  
+  // Allow passing a single class.
+  if (is_string($classes) && !empty($classes)) {
+    $classes = array($classes);
+  }
+  
+  if (!empty($classes)) {
+    $wrapped['#attributes']['class'] = $classes;
+  }
+  
+  if (!empty($id)) {
+    $wrapped['#attributes']['id'] = $id;
+  }
+  
+  return $wrapped;
+}
