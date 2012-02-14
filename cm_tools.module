@@ -15,9 +15,9 @@ function cm_tools_module_enable ($modules) {
   if (is_string($modules)) {
     $modules = array($modules);
   }
-  
+
   $result = module_enable($modules);
-  
+
   if (empty($result)) {
     throw new DrupalUpdateException(implode(', ', $modules) . ' or dependencies could not be enabled');
   }
@@ -38,7 +38,7 @@ function cm_tools_theme($existing, $type, $theme, $path) {
 
 /**
  * Return a render array that wraps the given render array in a given HTML tag.
- * 
+ *
  * @see theme_cm_tools_html_wrapper.
  */
 function cm_tools_html_wrapper($render, $tag = 'div', $classes = array(), $id = '') {
@@ -49,19 +49,76 @@ function cm_tools_html_wrapper($render, $tag = 'div', $classes = array(), $id = 
     '#attributes' => array(),
     '#pre_render' => array('drupal_pre_render_conditional_comments'),
   );
-  
+
   // Allow passing a single class.
   if (is_string($classes) && !empty($classes)) {
     $classes = array($classes);
   }
-  
+
   if (!empty($classes)) {
     $wrapped['#attributes']['class'] = $classes;
   }
-  
+
   if (!empty($id)) {
     $wrapped['#attributes']['id'] = $id;
   }
-  
+
   return $wrapped;
+}
+
+/**
+* Utility function which returns an array of references to all leaves
+* of the given render array.
+*
+* @param $render_array
+*  The array to return the leaves of.
+* @param $max_depth
+*  (Optional) Provide a positive integer here and instead of finding all leaves
+*  (i.e. elements with no children), instead all elements at this depth will be
+*  returned.
+*
+* @example
+*  // Iterate over all form elements that correspond to a field value without
+*  // caring about language or multi-valuedness.
+*  $els = cm_tools_render_array_leaves($form['my_el_name']);
+*  foreach ($els as &$el) {
+*    // . . .
+*  }
+*/
+function cm_tools_render_array_leaves(&$render_array, $max_depth = 0, $depth = 0) {
+  $leaves = array();
+  $child_keys = element_children($render_array);
+  if (empty($child_keys) || (!empty($max_depth) && $depth >= $max_depth)) {
+    $leaves = array(&$render_array);
+  }
+  else {
+    foreach ($child_keys as $k) {
+      $leaves = array_merge($leaves, cm_tools_render_array_leaves($render_array[$k], $max_depth, $depth + 1));
+    }
+  }
+  return $leaves;
+}
+
+/**
+* Returns a reference to the first leaf element from a render array (found
+* using a depth-first search).
+*
+* @param $render_array
+*  The array to return the leaf of.
+* @param $max_depth
+*  (Optional) Provide a positive integer here and instead of finding a leaf
+*  (i.e. elements with no children), instead the first element found at this
+*  depth will be returned.
+*
+* @example
+*  // Get the form element that represents a single-valued field without caring
+*  // what the language is.
+*  $el = &cm_tools_render_array_leaf($form['my_el_name'], 1);
+*/
+function &cm_tools_render_array_leaf(&$render_array, $max_depth = 0) {
+  $all_leaves = cm_tools_render_array_leaves($render_array, $max_depth);
+  if (!empty($all_leaves)) {
+    return $all_leaves[0];
+  }
+  return NULL;
 }
