@@ -62,6 +62,239 @@ function cm_tools_html_wrapper($render, $tag = 'div', $classes = array(), $id = 
   if (!empty($id)) {
     $wrapped['#attributes']['id'] = $id;
   }
-  
+
   return $wrapped;
+}
+
+/**
+ * Inserts one or more suggestions into a Drupal 7 theme_hook_suggestions array
+ * as available in any theme preprocess / process hook.
+ *
+ * @param $haystack
+ *  The $vars['theme_hook_suggestions'] array. It is modified by reference.
+ * @param $insert_value
+ *  String value after which to insert $suggestions. May also be an array of
+ *  suggested values in which case the first one to be found will be used.
+ * @param Array $suggestions
+ *  A single new suggestion, or array of new suggestions to insert.
+ * @param $insert_before [ = FALSE ]
+ *  (Optional) Change the behaviour of this function to insert *before*
+ *  $insert_value instead of after it.
+ * @param $append_on_fail [ = TRUE ]
+ *  (Optional) By default this function will append the $suggestions on the end
+ *  of $haystack if $insert_value could not be found. Pass FALSE here to stop
+ *  this and make this function return FALSE in this case.
+ *
+ * @return Success (Boolean).
+ */
+function cm_tools_insert_theme_hook_suggestion(&$haystack, $insert_value, $suggestions, $insert_before = FALSE, $append_on_fail = TRUE) {
+
+	if (!is_array($insert_value)) {
+	  $insert_value = array($insert_value);
+	}
+
+	$success = FALSE;
+	foreach ($insert_value as $v) {
+		if (cm_tools_array_insert_at_value($haystack, $v, $suggestions, $insert_before, FALSE)) {
+			$success = TRUE;
+			break;
+		}
+	}
+
+	if (!$success && $append_on_fail) {
+		if (!is_array($suggestions)) {
+			$suggestions = array($suggestions);
+		}
+		$haystack = array_merge(array_values($haystack), array_values($suggestions));
+		$success = TRUE;
+	}
+
+	return $success;
+}
+
+/**
+ * Renames an array key while leaving it in exactly the same place in the array.
+ *
+ * @param $haystack
+ *  The array. This is modified by reference.
+ * @param $key
+ *  The key to rename.
+ * @param $new_key
+ *  The new name for the key. If this already exists in the array it will be
+ *  overwritten.
+ *
+ * @return Success (Boolean).
+ */
+function cm_tools_array_rename_key(&$haystack, $key, $new_key) {
+	$success = FALSE;
+
+	if (isset($haystack[$key])) {
+		$insertion = array(
+			$new_key => $haystack[$key],
+		);
+		if ($success = cm_tools_array_insert_at_key($haystack, $key, $insertion)) {
+			if ($key !== $new_key) {
+				unset($haystack[$key]);
+			}
+		}
+	}
+
+	return $success;
+}
+
+/**
+ * Inserts a new element into an array, just after the one with the given value.
+ * The insert value is found by *strict* comparison. If multiple values are
+ * found the insertion will be made next to the first occurance only.
+ *
+ * @param $haystack
+ *  The array. This is modified by reference.
+ * @param $insert_value
+ *  Array value after which to insert $insertion. A *strict* comparison is
+ *  performed when searching for this value.
+ * @param Array $insertions
+ *  Array of new values to insert into the array. If $preserve_keys is TRUE and
+ *  an element already exists in the array with the same key as one you are
+ *  inserting, the old one(s) will removed. If this parameter is not an array it
+ *  will be inserted into the array with the lowest available numeric key.
+ * @param $insert_before [ = FALSE ]
+ *  (Optional) Change the behaviour of this function to insert *before*
+ *  $insert_value instead of after it.
+ * @param $preserve_keys [ = FALSE ]
+ *  (Optional) By default this function ignores keys, giving everything a new
+ *  numeric index. Pass TRUE here to indicate that all keys should be preserved.
+ *
+ * @return Success (Boolean).
+ */
+function cm_tools_array_insert_at_value(&$haystack, $insert_value, $insertions, $insert_before = FALSE, $preserve_keys = FALSE) {
+  $success = FALSE;
+  $insert_key = array_search($insert_value, $haystack, TRUE);
+	if ($insert_key !== FALSE) {
+		$success = cm_tools_array_insert_at_key($haystack, $insert_key, $insertions, $insert_before, $preserve_keys);
+  }
+  return $success;
+}
+
+/**
+ * Inserts a new element into an array, just after the one with the given key.
+ * The insert key is found by *strict* comparison.
+ *
+ * @param $haystack
+ *  The array. This is modified by reference.
+ * @param $insert_key
+ *  Array key after which to insert $insertion. This can also be an array of
+ *  suggested keys, in which case each will be looked for in turn and the
+ *  first existing one will be used. A *strict* comparison is performed when
+ *  searching for this key.
+ * @param Array $insertions
+ *  Array of new values to insert into the array. Unless $preserve_keys is FALSE
+ *  if an element already exists in the array with the same key as one you are
+ *  inserting, the old one(s) will removed. If this parameter is not an array it
+ *  will be inserted into the array with the lowest available numeric key.
+ * @param $insert_before [ = FALSE ]
+ *  (Optional) Change the behaviour of this function to insert *before*
+ *  $insert_key instead of after it.
+ * @param $preserve_keys [ = TRUE ]
+ *  (Optional) By default this function always preserves keys, even for
+ *  numerically-indexed arrays. Pass FALSE here if using a numerically-indexed
+ *  array and you don't want to overwrite elements.
+ *
+ * @return Success (Boolean).
+ */
+function cm_tools_array_insert_at_key(&$haystack, $insert_key, $insertions, $insert_before = FALSE, $preserve_keys = TRUE) {
+
+  $success = FALSE;
+
+  if (!is_array($insert_key)) {
+    $insert_key = array($insert_key);
+  }
+
+  $haystack_keys = array_keys($haystack);
+  $offset = FALSE;
+  while (count($insert_key) && $offset === FALSE) {
+    $loc = array_shift($insert_key);
+    $offset = array_search($loc, $haystack_keys, TRUE);
+  }
+
+	if ($offset !== FALSE) {
+		if ($insert_before) {
+			$offset = $offset - 1;
+		}
+		$success = cm_tools_array_insert_at_offset($haystack, $offset + 1, $insertions, $preserve_keys);
+	}
+
+  return $success;
+}
+
+/**
+ * Inserts a new element at an offset in an array.
+ *
+ * @param $haystack
+ *  The array. This is modified by reference.
+ * @param $offset
+ *  Offset after which to insert $insertion.
+ * @param Array $insertions
+ *  Array of new values to insert into the array. If $preserve_keys is TRUE and
+ *  an element already exists in the array with the same key as one you are
+ *  inserting, the old one(s) will removed. If this parameter is not an array it
+ *  will be inserted into the array with the lowest available numeric key.
+ * @param $preserve_keys [ = FALSE ]
+ *  (Optional) By default this function ignores keys, giving everything a new
+ *  numeric index. Pass TRUE here to indicate that all keys should be preserved.
+ *
+ * @return Success (Boolean).
+ */
+function cm_tools_array_insert_at_offset(&$haystack, $offset, $insertions, $preserve_keys = FALSE) {
+
+  $success = FALSE;
+
+	if (!is_integer($offset)) {
+		return FALSE;
+	}
+
+	if (!$preserve_keys) {
+		$haystack = array_values($haystack);
+	}
+
+	// Insertions not given as an array. Give it the lowest available numeric key.
+	if (!is_array($insertions)) {
+		$numeric_keys = array_filter(array_keys($haystack), 'is_numeric');
+		$unique_key = !empty($numeric_keys) ? max($numeric_keys) + 1 : 0;
+		$insertions = array($unique_key => $insertions);
+	}
+
+	if (!$preserve_keys) {
+		$insertions = array_values($insertions);
+	}
+
+	// Wipe out any keys we're about to overwrite, and ensure we modify the
+	// $offset to take into account the changed $haystack.
+	if ($preserve_keys) {
+		$o = 0;
+		foreach (array_keys($haystack) as $k) {
+			if (isset($insertions[$k])) {
+				if ($o < $offset) {
+					$offset--;
+				}
+				unset($haystack[$k]);
+			}
+			$o++;
+		}
+	}
+
+	$before = array_slice($haystack, 0, $offset, TRUE);
+	$after = array_slice($haystack, $offset, count($haystack), TRUE);
+
+	if (!$preserve_keys) {
+		$haystack = array_merge($before, $insertions, $after);
+		$success = TRUE;
+	}
+	else {
+		$keys = array_merge(array_keys($before), array_keys($insertions), array_keys($after));
+		$values = array_merge($before, $insertions, $after);
+		$haystack = array_combine($keys, $values);
+		$success = TRUE;
+	}
+
+  return $success;
 }
