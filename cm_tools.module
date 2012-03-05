@@ -5,24 +5,48 @@
  *
  * We'll try to keep this file as lean as possible, and do as much as possible
  * in includes.
+ *
+ * This file contains hook implementations and helpers likely to be used on
+ * every page request.
  */
 
 /**
- * Enables modules and throws an exception if that can't be done.
- * 
- * @param $modules
- *   A string containing a module name or an array of module names.
+ * Include .inc files as necessary.
+ *
+ * This fuction is helpful for including .inc files for your module. The
+ * general case is including cm_tools helper functions like this:
+ *
+ * @code
+ * cm_tools_include('profile');
+ * @endcode
+ *
+ * @param $file
+ *   The base file name to be included.
+ * @param $module
+ *   Optional module containing the include.
+ * @param $dir
+ *   Optional subdirectory containing the include file.
  */
-function cm_tools_module_enable ($modules) {
-  if (is_string($modules)) {
-    $modules = array($modules);
+function cm_tools_include($file, $module = 'cm_tools', $dir = 'includes') {
+  static $used = array();
+
+  $dir = '/' . ($dir ? $dir . '/' : '');
+
+  if (!isset($used[$module][$dir][$file])) {
+    require_once DRUPAL_ROOT . '/' . drupal_get_path('module', $module) . "$dir$file.inc";
+    $used[$module][$dir][$file] = TRUE;
   }
-  
-  $result = module_enable($modules);
-  
-  if (empty($result)) {
-    throw new DrupalUpdateException(implode(', ', $modules) . ' or dependencies could not be enabled');
-  }
+}
+
+/**
+ * Include .inc files in a form context.
+ *
+ * This is a variant of cm_tools_include that will save information in the
+ * the form_state so that cached forms will properly include things.
+ */
+function cm_tools_form_include(&$form_state, $file, $module = 'cm_tools', $dir = 'includes') {
+  $dir = '/' . ($dir ? $dir . '/' : '');
+  form_load_include($form_state, 'inc', $module, $dir . $file);
 }
 
 /**
@@ -31,41 +55,11 @@ function cm_tools_module_enable ($modules) {
 function cm_tools_theme($existing, $type, $theme, $path) {
   $items = array(
     'cm_tools_html_wrapper' => array(
-	  'render element' => 'element',
+	    'render element' => 'element',
       'file' => 'cm_tools.theme.inc',
-	),
+		),
   );
   return $items;
-}
-
-/**
- * Return a render array that wraps the given render array in a given HTML tag.
- * 
- * @see theme_cm_tools_html_wrapper.
- */
-function cm_tools_html_wrapper($render, $tag = 'div', $classes = array(), $id = '') {
-  $wrapped = array(
-    $render,
-    '#theme_wrappers' => array('cm_tools_html_wrapper'),
-    '#tag' => $tag,
-    '#attributes' => array(),
-    '#pre_render' => array('drupal_pre_render_conditional_comments'),
-  );
-  
-  // Allow passing a single class.
-  if (is_string($classes) && !empty($classes)) {
-    $classes = array($classes);
-  }
-  
-  if (!empty($classes)) {
-    $wrapped['#attributes']['class'] = $classes;
-  }
-  
-  if (!empty($id)) {
-    $wrapped['#attributes']['id'] = $id;
-  }
-
-  return $wrapped;
 }
 
 /**
