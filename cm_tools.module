@@ -50,19 +50,6 @@ function cm_tools_form_include(&$form_state, $file, $module = 'cm_tools', $dir =
 }
 
 /**
- * Implements hook_theme().
- */
-function cm_tools_theme($existing, $type, $theme, $path) {
-  $items = array(
-    'cm_tools_html_wrapper' => array(
-	    'render element' => 'element',
-      'file' => 'cm_tools.theme.inc',
-		),
-  );
-  return $items;
-}
-
-/**
  * Inserts one or more suggestions into a theme_hook_suggestions array.
  *
  * @param $haystack
@@ -141,7 +128,7 @@ function cm_tools_array_rename_key(&$haystack, $key, $new_key) {
 
 /**
  * Inserts a new element into an array, just after the one with the given value.
- * 
+ *
  * The insert value is found by *strict* comparison. If multiple values are
  * found the insertion will be made next to the first occurance only.
  *
@@ -177,7 +164,7 @@ function cm_tools_array_insert_at_value(&$haystack, $insert_value, $insertions, 
 
 /**
  * Inserts a new element into an array, just after the one with the given key.
- * 
+ *
  * The insert key is found by *strict* comparison.
  *
  * @param $haystack
@@ -302,4 +289,98 @@ function cm_tools_array_insert_at_offset(&$haystack, $offset, $insertions, $pres
 	}
 
   return $success;
+}
+
+/**
+ * Implements hook_theme().
+ */
+function cm_tools_theme($existing, $type, $theme, $path) {
+  $items = array(
+    'cm_tools_html_wrapper' => array(
+	    'render element' => 'element',
+      'file' => 'cm_tools.theme.inc',
+		),
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_preprocess_entity().
+ */
+function cm_tools_preprocess_entity(&$vars, $hook) {
+
+	$entity_type = $vars['entity_type'];
+
+	$view_mode = isset($vars['view_mode']) ? $vars['view_mode'] : 'full';
+
+	if (isset($vars[$entity_type]) && is_object($vars[$entity_type])) {
+		$entity = $vars[$entity_type];
+		list($id, $vid, $bundle) = entity_extract_ids($entity_type, $entity);
+
+		if (empty($bundle)) {
+			$bundle = $entity_type;
+		}
+
+		// Ensure theme_hook_suggestions for id, bundle and view_mode
+		$suggestion = "{$entity_type}__{$bundle}";
+		if (!in_array($suggestion, $vars['theme_hook_suggestions'])) {
+			array_unshift($vars['theme_hook_suggestions'], $suggestion);
+		}
+		$suggestion = "{$entity_type}__{$view_mode}";
+		if (!in_array($suggestion, $vars['theme_hook_suggestions'])) {
+			cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$bundle}", $suggestion);
+		}
+		$suggestion = "{$entity_type}__{$bundle}__{$view_mode}";
+		if (!in_array($suggestion, $vars['theme_hook_suggestions'])) {
+			cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$view_mode}", $suggestion);
+		}
+		$suggestion = "{$entity_type}__{$id}";
+		if (!in_array($suggestion, $vars['theme_hook_suggestions'])) {
+			$vars['theme_hook_suggestions'][] = $suggestion;
+		}
+		$suggestion = "{$entity_type}__{$id}__{$view_mode}";
+		if (!in_array($suggestion, $vars['theme_hook_suggestions'])) {
+			cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$id}", $suggestion);
+		}
+	}
+}
+
+/**
+ * Implements hook_preprocess_comment().
+ */
+function cm_tools_preprocess_comment(&$vars, $hook) {
+	$vars['entity_type'] = 'comment';
+  cm_tools_preprocess_entity($vars, $hook);
+}
+
+/**
+ * Implements hook_preprocess_node().
+ */
+function cm_tools_preprocess_node(&$vars, $hook) {
+	$vars['entity_type'] = 'node';
+  cm_tools_preprocess_entity($vars, $hook);
+}
+
+/**
+ * Implements hook_preprocess_taxonomy_term().
+ */
+function cm_tools_preprocess_taxonomy_term(&$vars, $hook) {
+	$vars['entity_type'] = 'taxonomy_term';
+  cm_tools_preprocess_entity($vars, $hook);
+}
+
+/**
+ * Implements hook_preprocess_taxonomy_vocabulary().
+ */
+function cm_tools_preprocess_taxonomy_vocabulary(&$vars, $hook) {
+	$vars['entity_type'] = 'taxonomy_vocabulary';
+  cm_tools_preprocess_entity($vars, $hook);
+}
+
+/**
+ * Implements hook_preprocess_user().
+ */
+function cm_tools_preprocess_user(&$vars, $hook) {
+	$vars['entity_type'] = 'user';
+  cm_tools_preprocess_entity($vars, $hook);
 }
