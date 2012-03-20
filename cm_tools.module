@@ -320,6 +320,8 @@ function cm_tools_preprocess_entity(&$vars, $hook) {
 		if (empty($bundle)) {
 			$bundle = $entity_type;
 		}
+    
+    $entity_type = isset($vars['entity_type_theme_name']) ? $vars['entity_type_theme_name'] : $entity_type;
 
 		// Ensure theme_hook_suggestions for id, bundle and view_mode
 		$suggestion = "{$entity_type}__{$bundle}";
@@ -378,9 +380,13 @@ function cm_tools_preprocess_taxonomy_vocabulary(&$vars, $hook) {
 }
 
 /**
- * Implements hook_preprocess_user().
+ * Implements hook_preprocess_user_profile().
  */
-function cm_tools_preprocess_user(&$vars, $hook) {
+function cm_tools_preprocess_user_profile(&$vars, $hook) {
 	$vars['entity_type'] = 'user';
+  $vars['entity_type_theme_name'] = 'user_profile';
+  if (!isset($vars['view_mode'])) {
+    $vars['view_mode'] = $vars['elements']['#view_mode'];
+  }
   cm_tools_preprocess_entity($vars, $hook);
 }
