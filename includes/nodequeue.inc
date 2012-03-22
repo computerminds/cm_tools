@@ -3,6 +3,17 @@
 /**
  * Create a new nodequeue.
  *
+ * @code
+ * $options = array(
+ *   'show_in_links' => 0,
+ *   'roles' => array_keys(user_roles(FALSE, 'manipulate queues')),
+ *   'types' => array(
+ *     'blog',
+ *   ),
+ * );
+ * cm_tools_nodequeue_create('blogs', 'Blogs', $options);
+ * @endcode
+ *
  * @param $name
  *   The machine name of the nodequeue.
  * @param $title
