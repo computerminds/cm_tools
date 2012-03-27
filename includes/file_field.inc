@@ -4,7 +4,7 @@
  * Helper function for creating a new file value on a node.
  * Can only handle files that are already on the server.
  */
-function cm_tools_field_field_file_add($source, $destination, $mimetype = 'image/jpeg', $title = '', $alt = '') {
+function cm_tools_file_field_file_add($source, $destination, $mimetype = 'image/jpeg', $title = '', $alt = '') {
   $file = new stdClass();
   $file->uid = 0;
   $file->uri = $source;
