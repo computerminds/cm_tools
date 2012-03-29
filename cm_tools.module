@@ -313,6 +313,7 @@ function cm_tools_preprocess_entity(&$vars, $hook) {
 
 	$view_mode = isset($vars['view_mode']) ? $vars['view_mode'] : 'full';
 
+  // Add a full selection of theme hook suggestions.
 	if (isset($vars[$entity_type]) && is_object($vars[$entity_type])) {
 		$entity = $vars[$entity_type];
 		list($id, $vid, $bundle) = entity_extract_ids($entity_type, $entity);
@@ -345,6 +346,19 @@ function cm_tools_preprocess_entity(&$vars, $hook) {
 			cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$id}", $suggestion);
 		}
 	}
+
+  // Add a class indicating view mode.
+  $classes = array();
+  $classes[] = drupal_clean_css_identifier("{$entity_type}-{$view_mode}");
+  if (isset($vars['classes_array'])) {
+    $vars['classes_array'] = array_merge($vars['classes_array'], $classes);
+  }
+  elseif (isset($vars['attributes_array'])) {
+    $vars['attributes_array'] = array_merge_recursive($vars['attributes_array'], array('class' => $classes));
+  }
+  elseif (isset($vars['classes']) && is_string($vars['classes'])) {
+    $vars['classes'] .= ' ' . implode(' ', $classes);
+  }
 }
 
 /**
@@ -368,6 +382,7 @@ function cm_tools_preprocess_node(&$vars, $hook) {
  */
 function cm_tools_preprocess_taxonomy_term(&$vars, $hook) {
 	$vars['entity_type'] = 'taxonomy_term';
+	$vars[$vars['entity_type']] = $vars['term'];
   cm_tools_preprocess_entity($vars, $hook);
 }
 
