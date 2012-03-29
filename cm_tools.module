@@ -405,3 +405,11 @@ function cm_tools_preprocess_user_profile(&$vars, $hook) {
   }
   cm_tools_preprocess_entity($vars, $hook);
 }
+
+/**
+ * Implements hook_views_plugins().
+ */
+function cm_tools_views_plugins() {
+  module_load_include('inc', 'cm_tools', 'cm_tools.views');
+  return _cm_tools_views_plugins();
+}
