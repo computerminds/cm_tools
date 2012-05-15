@@ -365,7 +365,10 @@ function cm_tools_preprocess_entity(&$vars, $hook) {
  * Implements hook_preprocess_comment().
  */
 function cm_tools_preprocess_comment(&$vars, $hook) {
-	$vars['entity_type'] = 'comment';
+  $vars['entity_type'] = 'comment';
+  if (isset($vars['elements']['#view_mode'])) {
+    $vars['view_mode'] = $vars['elements']['#view_mode'];
+  }
   cm_tools_preprocess_entity($vars, $hook);
 }
 
