@@ -307,7 +307,7 @@ function cm_tools_theme($existing, $type, $theme, $path) {
 /**
  * Implements hook_preprocess_entity().
  */
-function cm_tools_preprocess_entity(&$vars, $hook) {
+function cm_tools_preprocess_entity(&$vars, $hook, $suggestion_prefix = 'entity__') {
 
 	$entity_type = $vars['entity_type'];
 
@@ -321,29 +321,29 @@ function cm_tools_preprocess_entity(&$vars, $hook) {
 		if (empty($bundle)) {
 			$bundle = $entity_type;
 		}
-    
+
     $entity_type = isset($vars['entity_type_theme_name']) ? $vars['entity_type_theme_name'] : $entity_type;
 
 		// Ensure theme_hook_suggestions for id, bundle and view_mode
 		$suggestion = "{$entity_type}__{$bundle}";
-		if (!in_array($suggestion, $vars['theme_hook_suggestions'])) {
-			array_unshift($vars['theme_hook_suggestions'], $suggestion);
+		if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
+			array_unshift($vars['theme_hook_suggestions'], $suggestion_prefix . $suggestion);
 		}
 		$suggestion = "{$entity_type}__{$view_mode}";
-		if (!in_array($suggestion, $vars['theme_hook_suggestions'])) {
-			cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$bundle}", $suggestion);
+		if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
+			cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$bundle}", $suggestion_prefix . $suggestion);
 		}
 		$suggestion = "{$entity_type}__{$bundle}__{$view_mode}";
-		if (!in_array($suggestion, $vars['theme_hook_suggestions'])) {
-			cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$view_mode}", $suggestion);
+		if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
+			cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$view_mode}", $suggestion_prefix . $suggestion);
 		}
 		$suggestion = "{$entity_type}__{$id}";
-		if (!in_array($suggestion, $vars['theme_hook_suggestions'])) {
-			$vars['theme_hook_suggestions'][] = $suggestion;
+		if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
+			$vars['theme_hook_suggestions'][] = $suggestion_prefix . $suggestion;
 		}
 		$suggestion = "{$entity_type}__{$id}__{$view_mode}";
-		if (!in_array($suggestion, $vars['theme_hook_suggestions'])) {
-			cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$id}", $suggestion);
+		if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
+			cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$id}", $suggestion_prefix . $suggestion);
 		}
 	}
 
@@ -369,7 +369,7 @@ function cm_tools_preprocess_comment(&$vars, $hook) {
   if (isset($vars['elements']['#view_mode'])) {
     $vars['view_mode'] = $vars['elements']['#view_mode'];
   }
-  cm_tools_preprocess_entity($vars, $hook);
+  cm_tools_preprocess_entity($vars, $hook, '');
 }
 
 /**
@@ -377,7 +377,7 @@ function cm_tools_preprocess_comment(&$vars, $hook) {
  */
 function cm_tools_preprocess_node(&$vars, $hook) {
 	$vars['entity_type'] = 'node';
-  cm_tools_preprocess_entity($vars, $hook);
+  cm_tools_preprocess_entity($vars, $hook, '');
 }
 
 /**
@@ -386,7 +386,7 @@ function cm_tools_preprocess_node(&$vars, $hook) {
 function cm_tools_preprocess_taxonomy_term(&$vars, $hook) {
 	$vars['entity_type'] = 'taxonomy_term';
 	$vars[$vars['entity_type']] = $vars['term'];
-  cm_tools_preprocess_entity($vars, $hook);
+  cm_tools_preprocess_entity($vars, $hook, '');
 }
 
 /**
@@ -394,7 +394,7 @@ function cm_tools_preprocess_taxonomy_term(&$vars, $hook) {
  */
 function cm_tools_preprocess_taxonomy_vocabulary(&$vars, $hook) {
 	$vars['entity_type'] = 'taxonomy_vocabulary';
-  cm_tools_preprocess_entity($vars, $hook);
+  cm_tools_preprocess_entity($vars, $hook, '');
 }
 
 /**
@@ -406,7 +406,7 @@ function cm_tools_preprocess_user_profile(&$vars, $hook) {
   if (!isset($vars['view_mode'])) {
     $vars['view_mode'] = $vars['elements']['#view_mode'];
   }
-  cm_tools_preprocess_entity($vars, $hook);
+  cm_tools_preprocess_entity($vars, $hook, '');
 }
 
 /**
