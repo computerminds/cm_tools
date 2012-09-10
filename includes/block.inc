@@ -51,12 +51,15 @@ function cm_tools_block_position($module, $delta, $block = array()) {
 }
 
 /**
- * Get a render array for a block, no questions asked.
+ * Retrieve the render array representation for the given block.
  *
  * @param $module
  *   The module that provides the block.
  * @param $delta
  *   The block delta.
+ *
+ * @return array
+ *   A render array, suitable for passing to render().
  */
 function cm_tools_get_block($module, $delta) {
   $block = block_load($module, $delta);
