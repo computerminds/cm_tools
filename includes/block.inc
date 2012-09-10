@@ -49,3 +49,20 @@ function cm_tools_block_position($module, $delta, $block = array()) {
     )))
     ->execute();
 }
+
+/**
+ * Get a render array for a block, no questions asked.
+ *
+ * @param $module
+ *   The module that provides the block.
+ * @param $delta
+ *   The block delta.
+ */
+function cm_tools_get_block($module, $delta) {
+  $block = block_load($module, $delta);
+  $block->region = isset($block->region) ? $block->region : NULL;
+  if ($blocks = _block_render_blocks(array($block))) {
+    return _block_get_renderable_array(array_values($blocks));
+  }
+  return NULL;
+}
