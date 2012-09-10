@@ -58,8 +58,9 @@ function cm_tools_block_position($module, $delta, $block = array()) {
  * @param $delta
  *   The block delta.
  *
- * @return array
- *   A render array, suitable for passing to render().
+ * @return array|null
+ *   A render array, suitable for passing to render(). If no block is
+ *   available, NULL is returned.
  */
 function cm_tools_get_block($module, $delta) {
   $block = block_load($module, $delta);
