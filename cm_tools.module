@@ -350,6 +350,8 @@ function cm_tools_preprocess_entity(&$vars, $hook, $suggestion_prefix = 'entity_
   // Add a class indicating view mode.
   $classes = array();
   $classes[] = drupal_clean_css_identifier("{$entity_type}-{$view_mode}");
+  // Also add entity-bundle-view_mode combo
+  $classes[] = drupal_clean_css_identifier("{$entity_type}-{$bundle}-{$view_mode}");
   if (isset($vars['classes_array'])) {
     $vars['classes_array'] = array_merge($vars['classes_array'], $classes);
   }
