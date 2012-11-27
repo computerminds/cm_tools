@@ -307,6 +307,25 @@ function cm_tools_theme($existing, $type, $theme, $path) {
 
 /**
  * Implements hook_preprocess_entity().
+ *
+ * We add in a full and comprehensive selection of theme hook suggestions,
+ * consistent across entities. This transforms the default suggestions from:
+ *
+ *   1. entitytype--id      (eg. node--34.tpl.php)
+ *   2. entitytype--bundle  (eg. node--article.tpl.php)
+ *   3. entitytype          (eg. node.tpl.php)
+ *
+ * To a more flexible:
+ *
+ *   1. entitytype--id--viewmode      (eg. node--34--teaser.tpl.php)
+ *   2. entitytype--id                (eg. node--34.tpl.php)
+ *   3. entitytype--bundle--viewmode  (eg. node--article--teaser.tpl.php)
+ *   4. entitytype--viewmode          (eg. node--teaser.tpl.php)
+ *   5. entitytype--bundle            (eg. node--article.tpl.php)
+ *   6. entitytype                    (eg. node.tpl.php)
+ *
+ * We also some complementary classes to the entity template classes array,
+ * in the event that only css is required.
  */
 function cm_tools_preprocess_entity(&$vars, $hook, $suggestion_prefix = 'entity__') {
 
