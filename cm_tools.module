@@ -72,27 +72,27 @@ function cm_tools_form_include(&$form_state, $file, $module = 'cm_tools', $dir =
  */
 function cm_tools_insert_theme_hook_suggestion(&$haystack, $insert_value, $suggestions, $insert_before = FALSE, $append_on_fail = TRUE) {
 
-	if (!is_array($insert_value)) {
-	  $insert_value = array($insert_value);
-	}
+  if (!is_array($insert_value)) {
+    $insert_value = array($insert_value);
+  }
 
-	$success = FALSE;
-	foreach ($insert_value as $v) {
-		if (cm_tools_array_insert_at_value($haystack, $v, $suggestions, $insert_before, FALSE)) {
-			$success = TRUE;
-			break;
-		}
-	}
+  $success = FALSE;
+  foreach ($insert_value as $v) {
+    if (cm_tools_array_insert_at_value($haystack, $v, $suggestions, $insert_before, FALSE)) {
+      $success = TRUE;
+      break;
+    }
+  }
 
-	if (!$success && $append_on_fail) {
-		if (!is_array($suggestions)) {
-			$suggestions = array($suggestions);
-		}
-		$haystack = array_merge(array_values($haystack), array_values($suggestions));
-		$success = TRUE;
-	}
+  if (!$success && $append_on_fail) {
+    if (!is_array($suggestions)) {
+      $suggestions = array($suggestions);
+    }
+    $haystack = array_merge(array_values($haystack), array_values($suggestions));
+    $success = TRUE;
+  }
 
-	return $success;
+  return $success;
 }
 
 /**
@@ -110,20 +110,20 @@ function cm_tools_insert_theme_hook_suggestion(&$haystack, $insert_value, $sugge
  *   Success, either TRUE or FALSE.
  */
 function cm_tools_array_rename_key(&$haystack, $key, $new_key) {
-	$success = FALSE;
+  $success = FALSE;
 
-	if (isset($haystack[$key])) {
-		$insertion = array(
-			$new_key => $haystack[$key],
-		);
-		if ($success = cm_tools_array_insert_at_key($haystack, $key, $insertion)) {
-			if ($key !== $new_key) {
-				unset($haystack[$key]);
-			}
-		}
-	}
+  if (isset($haystack[$key])) {
+    $insertion = array(
+      $new_key => $haystack[$key],
+    );
+    if ($success = cm_tools_array_insert_at_key($haystack, $key, $insertion)) {
+      if ($key !== $new_key) {
+        unset($haystack[$key]);
+      }
+    }
+  }
 
-	return $success;
+  return $success;
 }
 
 /**
@@ -156,8 +156,8 @@ function cm_tools_array_rename_key(&$haystack, $key, $new_key) {
 function cm_tools_array_insert_at_value(&$haystack, $insert_value, $insertions, $insert_before = FALSE, $preserve_keys = FALSE) {
   $success = FALSE;
   $insert_key = array_search($insert_value, $haystack, TRUE);
-	if ($insert_key !== FALSE) {
-		$success = cm_tools_array_insert_at_key($haystack, $insert_key, $insertions, $insert_before, $preserve_keys);
+  if ($insert_key !== FALSE) {
+    $success = cm_tools_array_insert_at_key($haystack, $insert_key, $insertions, $insert_before, $preserve_keys);
   }
   return $success;
 }
@@ -206,12 +206,12 @@ function cm_tools_array_insert_at_key(&$haystack, $insert_key, $insertions, $ins
     $offset = array_search($loc, $haystack_keys, TRUE);
   }
 
-	if ($offset !== FALSE) {
-		if ($insert_before) {
-			$offset = $offset - 1;
-		}
-		$success = cm_tools_array_insert_at_offset($haystack, $offset + 1, $insertions, $preserve_keys);
-	}
+  if ($offset !== FALSE) {
+    if ($insert_before) {
+      $offset = $offset - 1;
+    }
+    $success = cm_tools_array_insert_at_offset($haystack, $offset + 1, $insertions, $preserve_keys);
+  }
 
   return $success;
 }
@@ -240,53 +240,53 @@ function cm_tools_array_insert_at_offset(&$haystack, $offset, $insertions, $pres
 
   $success = FALSE;
 
-	if (!is_integer($offset)) {
-		return FALSE;
-	}
+  if (!is_integer($offset)) {
+    return FALSE;
+  }
 
-	if (!$preserve_keys) {
-		$haystack = array_values($haystack);
-	}
+  if (!$preserve_keys) {
+    $haystack = array_values($haystack);
+  }
 
-	// Insertions not given as an array. Give it the lowest available numeric key.
-	if (!is_array($insertions)) {
-		$numeric_keys = array_filter(array_keys($haystack), 'is_numeric');
-		$unique_key = !empty($numeric_keys) ? max($numeric_keys) + 1 : 0;
-		$insertions = array($unique_key => $insertions);
-	}
+  // Insertions not given as an array. Give it the lowest available numeric key.
+  if (!is_array($insertions)) {
+    $numeric_keys = array_filter(array_keys($haystack), 'is_numeric');
+    $unique_key = !empty($numeric_keys) ? max($numeric_keys) + 1 : 0;
+    $insertions = array($unique_key => $insertions);
+  }
 
-	if (!$preserve_keys) {
-		$insertions = array_values($insertions);
-	}
+  if (!$preserve_keys) {
+    $insertions = array_values($insertions);
+  }
 
-	// Wipe out any keys we're about to overwrite, and ensure we modify the
-	// $offset to take into account the changed $haystack.
-	if ($preserve_keys) {
-		$o = 0;
-		foreach (array_keys($haystack) as $k) {
-			if (isset($insertions[$k])) {
-				if ($o < $offset) {
-					$offset--;
-				}
-				unset($haystack[$k]);
-			}
-			$o++;
-		}
-	}
+  // Wipe out any keys we're about to overwrite, and ensure we modify the
+  // $offset to take into account the changed $haystack.
+  if ($preserve_keys) {
+    $o = 0;
+    foreach (array_keys($haystack) as $k) {
+      if (isset($insertions[$k])) {
+        if ($o < $offset) {
+          $offset--;
+        }
+        unset($haystack[$k]);
+      }
+      $o++;
+    }
+  }
 
-	$before = array_slice($haystack, 0, $offset, TRUE);
-	$after = array_slice($haystack, $offset, count($haystack), TRUE);
+  $before = array_slice($haystack, 0, $offset, TRUE);
+  $after = array_slice($haystack, $offset, count($haystack), TRUE);
 
-	if (!$preserve_keys) {
-		$haystack = array_merge($before, $insertions, $after);
-		$success = TRUE;
-	}
-	else {
-		$keys = array_merge(array_keys($before), array_keys($insertions), array_keys($after));
-		$values = array_merge($before, $insertions, $after);
-		$haystack = array_combine($keys, $values);
-		$success = TRUE;
-	}
+  if (!$preserve_keys) {
+    $haystack = array_merge($before, $insertions, $after);
+    $success = TRUE;
+  }
+  else {
+    $keys = array_merge(array_keys($before), array_keys($insertions), array_keys($after));
+    $values = array_merge($before, $insertions, $after);
+    $haystack = array_combine($keys, $values);
+    $success = TRUE;
+  }
 
   return $success;
 }
@@ -297,55 +297,56 @@ function cm_tools_array_insert_at_offset(&$haystack, $offset, $insertions, $pres
 function cm_tools_theme($existing, $type, $theme, $path) {
   $items = array(
     'cm_tools_html_wrapper' => array(
-	    'render element' => 'element',
+      'render element' => 'element',
       'file' => 'cm_tools.theme.inc',
-		),
+    ),
   );
   return $items;
 }
+
 
 /**
  * Implements hook_preprocess_entity().
  */
 function cm_tools_preprocess_entity(&$vars, $hook, $suggestion_prefix = 'entity__') {
 
-	$entity_type = $vars['entity_type'];
+  $entity_type = $vars['entity_type'];
 
-	$view_mode = isset($vars['view_mode']) ? $vars['view_mode'] : 'full';
+  $view_mode = isset($vars['view_mode']) ? $vars['view_mode'] : 'full';
 
   // Add a full selection of theme hook suggestions.
-	if (isset($vars[$entity_type]) && is_object($vars[$entity_type])) {
-		$entity = $vars[$entity_type];
-		list($id, $vid, $bundle) = entity_extract_ids($entity_type, $entity);
+  if (isset($vars[$entity_type]) && is_object($vars[$entity_type])) {
+    $entity = $vars[$entity_type];
+    list($id, $vid, $bundle) = entity_extract_ids($entity_type, $entity);
 
-		if (empty($bundle)) {
-			$bundle = $entity_type;
-		}
+    if (empty($bundle)) {
+      $bundle = $entity_type;
+    }
 
     $entity_type = isset($vars['entity_type_theme_name']) ? $vars['entity_type_theme_name'] : $entity_type;
 
-		// Ensure theme_hook_suggestions for id, bundle and view_mode
-		$suggestion = "{$entity_type}__{$bundle}";
-		if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
-			array_unshift($vars['theme_hook_suggestions'], $suggestion_prefix . $suggestion);
-		}
-		$suggestion = "{$entity_type}__{$view_mode}";
-		if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
-			cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$bundle}", $suggestion_prefix . $suggestion);
-		}
-		$suggestion = "{$entity_type}__{$bundle}__{$view_mode}";
-		if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
-			cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$view_mode}", $suggestion_prefix . $suggestion);
-		}
-		$suggestion = "{$entity_type}__{$id}";
-		if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
-			$vars['theme_hook_suggestions'][] = $suggestion_prefix . $suggestion;
-		}
-		$suggestion = "{$entity_type}__{$id}__{$view_mode}";
-		if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
-			cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$id}", $suggestion_prefix . $suggestion);
-		}
-	}
+    // Ensure theme_hook_suggestions for id, bundle and view_mode
+    $suggestion = "{$entity_type}__{$bundle}";
+    if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
+      array_unshift($vars['theme_hook_suggestions'], $suggestion_prefix . $suggestion);
+    }
+    $suggestion = "{$entity_type}__{$view_mode}";
+    if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
+      cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$bundle}", $suggestion_prefix . $suggestion);
+    }
+    $suggestion = "{$entity_type}__{$bundle}__{$view_mode}";
+    if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
+      cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$view_mode}", $suggestion_prefix . $suggestion);
+    }
+    $suggestion = "{$entity_type}__{$id}";
+    if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
+      $vars['theme_hook_suggestions'][] = $suggestion_prefix . $suggestion;
+    }
+    $suggestion = "{$entity_type}__{$id}__{$view_mode}";
+    if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
+      cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$id}", $suggestion_prefix . $suggestion);
+    }
+  }
 
   // Add a class indicating view mode.
   $classes = array();
@@ -378,7 +379,7 @@ function cm_tools_preprocess_comment(&$vars, $hook) {
  * Implements hook_preprocess_node().
  */
 function cm_tools_preprocess_node(&$vars, $hook) {
-	$vars['entity_type'] = 'node';
+  $vars['entity_type'] = 'node';
   cm_tools_preprocess_entity($vars, $hook, '');
 }
 
@@ -386,8 +387,8 @@ function cm_tools_preprocess_node(&$vars, $hook) {
  * Implements hook_preprocess_taxonomy_term().
  */
 function cm_tools_preprocess_taxonomy_term(&$vars, $hook) {
-	$vars['entity_type'] = 'taxonomy_term';
-	$vars[$vars['entity_type']] = $vars['term'];
+  $vars['entity_type'] = 'taxonomy_term';
+  $vars[$vars['entity_type']] = $vars['term'];
   cm_tools_preprocess_entity($vars, $hook, '');
 }
 
@@ -395,7 +396,7 @@ function cm_tools_preprocess_taxonomy_term(&$vars, $hook) {
  * Implements hook_preprocess_taxonomy_vocabulary().
  */
 function cm_tools_preprocess_taxonomy_vocabulary(&$vars, $hook) {
-	$vars['entity_type'] = 'taxonomy_vocabulary';
+  $vars['entity_type'] = 'taxonomy_vocabulary';
   cm_tools_preprocess_entity($vars, $hook, '');
 }
 
@@ -403,7 +404,7 @@ function cm_tools_preprocess_taxonomy_vocabulary(&$vars, $hook) {
  * Implements hook_preprocess_user_profile().
  */
 function cm_tools_preprocess_user_profile(&$vars, $hook) {
-	$vars['entity_type'] = 'user';
+  $vars['entity_type'] = 'user';
   $vars['entity_type_theme_name'] = 'user_profile';
   if (!isset($vars['view_mode'])) {
     $vars['view_mode'] = $vars['elements']['#view_mode'];
