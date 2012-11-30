@@ -6,7 +6,7 @@
 
 /**
  * Enables modules and throws an exception if that can't be done.
- * 
+ *
  * @param $modules
  *   A string containing a module name or an array of module names.
  */
@@ -56,35 +56,35 @@ function cm_tools_module_enable($modules) {
  *
  * @return
  *   FALSE if a block with that admin label already exists,
- *   <delta> of the newly created block on success.
+ *   $block array (containing 'delta') of the newly created block on success.
  *
  * @see block_add_block_form_submit().
  */
-function cm_tools_block_custom_add($admin_label, $title, $body, $body_format = NULL, $region = BLOCK_REGION_NONE, $weight = 0, $settings = array()) {
-
-  if (!isset($body_format)) {
-    $body_format = variable_get('filter_fallback_format');
-  }
+function cm_tools_block_custom_add($admin_label, $block = array()) {
 
   // Merge in default values for block settings.
-  $settings += array(
+  $block += array(
+    'title' => '',
+    'body' => '',
+    'body_format' => variable_get('filter_fallback_format'),
+    'region' => BLOCK_REGION_NONE,
+    'weight' => 0,
     'content_types' => array(),
-    'visibility' => BLOCK_VISIBILITY_NOTLISTED,
-    'pages' => '',
-    'custom' => 1,
-    'title' => $title,
-    'module' => 'block',
-    'status' => (int) ($region != BLOCK_REGION_NONE),
-    'weight' => $weight,
-    'delta' => $delta,
-    'cache' => DRUPAL_NO_CACHE,
     'roles' => array(),
-    'region' => $region,
+    'visibility' => BLOCK_VISIBILITY_NOTLISTED,
+    'pages' => array(),
+    'cache' => DRUPAL_NO_CACHE,
+    'custom' => 1,
+    'module' => 'block',
   );
 
+  if (!isset($block['status'])) {
+    $block['status'] = (int) ($block['region'] != BLOCK_REGION_NONE);
+  }
+
   // Support array for pages.
-  if (is_array($settings['pages'])) {
-    $settings['pages'] = implode("\n", $settings['pages']);
+  if (is_array($block['pages'])) {
+    $block['pages'] = implode("\n", $block['pages']);
   }
 
   $custom_block_exists = (bool) db_query_range('SELECT 1 FROM {block_custom} WHERE info = :info', 0, 1, array(':info' => $admin_label))->fetchField();
@@ -92,7 +92,7 @@ function cm_tools_block_custom_add($admin_label, $title, $body, $body_format = N
     return FALSE;
   }
 
-  $delta = db_insert('block_custom')
+  $block['delta'] = $delta = db_insert('block_custom')
     ->fields(array(
       'body' => $body,
       'info' => $admin_label,
@@ -104,17 +104,17 @@ function cm_tools_block_custom_add($admin_label, $title, $body, $body_format = N
   foreach (list_themes() as $key => $theme) {
     if (!empty($theme->status) || (variable_get('theme_default') == $theme->name)) {
       $query->values(array(
-        'visibility' => $settings['visibility'],
-        'pages' => $settings['pages'],
-        'custom' => $settings['custom'],
-        'title' => $settings['title'],
-        'module' => $settings['module'],
+        'visibility' => $block['visibility'],
+        'pages' => $block['pages'],
+        'custom' => $block['custom'],
+        'title' => $block['title'],
+        'module' => $block['module'],
         'theme' => $theme->name,
-        'status' => $settings['status'],
-        'weight' => $settings['weight'],
+        'status' => $block['status'],
+        'weight' => $block['weight'],
         'delta' => $delta,
-        'cache' => $settings['cache'],
-        'region' => $settings['region'],
+        'cache' => $block['cache'],
+        'region' => $block['region'],
       ));
     }
   }
@@ -122,7 +122,7 @@ function cm_tools_block_custom_add($admin_label, $title, $body, $body_format = N
 
   // Roles
   $query = db_insert('block_role')->fields(array('rid', 'module', 'delta'));
-  foreach (array_filter($settings['roles']) as $rid) {
+  foreach (array_filter($block['roles']) as $rid) {
     $query->values(array(
       'rid' => $rid,
       'module' => 'block',
@@ -138,7 +138,7 @@ function cm_tools_block_custom_add($admin_label, $title, $body, $body_format = N
     ->condition('delta', $delta)
     ->execute();
   $query = db_insert('block_node_type')->fields(array('type', 'module', 'delta'));
-  foreach (array_filter($settings['content_types']) as $type) {
+  foreach (array_filter($block['content_types']) as $type) {
     $query->values(array(
       'type' => $type,
       'module' => 'block',
@@ -147,7 +147,7 @@ function cm_tools_block_custom_add($admin_label, $title, $body, $body_format = N
   }
   $query->execute();
 
-  return $delta;
+  return $block;
 }
 
 /**
