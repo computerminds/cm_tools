@@ -438,3 +438,52 @@ function cm_tools_views_plugins() {
   module_load_include('inc', 'cm_tools', 'cm_tools.views');
   return _cm_tools_views_plugins();
 }
+
+/**
+ * Implements hook_page_alter().
+ */
+function cm_tools_page_alter(&$page) {
+
+  // Allow drupal_add_region_content() to work everywhere, not just on the
+  // maintenance page as per Drupal core.
+  foreach (drupal_add_region_content() as $region => $contents) {
+
+    // Standardize each item to a render array.
+    foreach ($contents as $k => $content) {
+      if (!is_array($content)) {
+        $contents[$k] = array(
+          '#type' => 'markup',
+          '#markup' => $content,
+        );
+      }
+    }
+
+    // And add in the extra content.
+    if (isset($page[$region])) {
+      if (is_string($page[$region])) {
+        $page[$region] .= drupal_render($contents);
+      }
+      else {
+        // Provide a consistent key for our extra content.
+        $page[$region]['drupal_add_region_content'] = $contents;
+      }
+    }
+    else {
+      $page[$region] = $contents;
+    }
+  }
+}
+
+/**
+ * Implements hook_module_implements_alter().
+ */
+function cm_tools_module_implements_alter(&$implementations, $hook) {
+  if ($hook == 'page_alter') {
+    // Ensure our hook_page_alter is run early before people move stuff around.
+    // For example, alpha will hide certain regions which are disabled, and
+    // blockgroup module will copy things over for rendering inside a block.
+    $implementations = array(
+      'cm_tools' => $implementations['cm_tools'],
+    ) + $implementations;
+  }
+}
