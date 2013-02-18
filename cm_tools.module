@@ -292,6 +292,30 @@ function cm_tools_array_insert_at_offset(&$haystack, $offset, $insertions, $pres
 }
 
 /**
+ * Remove element(s) with given value(s) from an array.
+ *
+ * @param $haystack
+ *   The array. This is modified by reference.
+ * @param $values
+ *   A string value or array of values to remove from the array.
+ */
+function cm_tools_array_remove_values(&$haystack, $values) {
+  // Make values an array.
+  if (is_string($values)) {
+    $values = array($values);
+  }
+
+  foreach ($values as $value_to_remove) {
+    $key = array_search($value_to_remove, $haystack);
+    if ($key !== false) {
+      unset($haystack[$key]);
+    }
+  }
+}
+
+
+
+/**
  * Implements hook_theme().
  */
 function cm_tools_theme($existing, $type, $theme, $path) {
