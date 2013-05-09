@@ -10,7 +10,7 @@
  * @param  $block
  *   Options for the block.
  */
-function cm_tools_block_position($module, $delta, $block = array()) {
+function cm_tools_block_position($module, $delta, $block = array(), $all_themes = TRUE) {
   $block['module'] = $module;
   $block['delta'] = $delta;
   $block += array(
@@ -23,11 +23,20 @@ function cm_tools_block_position($module, $delta, $block = array()) {
     'pages' => '',
   );
 
+  // Set default keys for the db_merge query.
+  $merge_keys = array(
+    'module' => TRUE,
+    'delta' => TRUE,
+  );
+
+  // We might not want to position this block for all themes. If so, restrict
+  // the merge query by theme.
+  if ($all_themes === FALSE) {
+    $merge_keys['theme'] = $block['theme'];
+  }
+
   db_merge('block')
-    ->key(array_intersect_key($block, array(
-      'module' => TRUE,
-      'delta'  => TRUE,
-    )))
+    ->key(array_intersect_key($block, $merge_keys))
     ->insertFields(array_intersect_key($block, array(
       'module' => TRUE,
       'delta'  => TRUE,
