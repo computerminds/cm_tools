@@ -10,6 +10,8 @@
  * every page request.
  */
 
+include_once 'cm_tools.element.inc';
+
 /**
  * Include .inc files as necessary.
  *
