@@ -1,0 +1,648 @@
+From e40b42b13d303b0a6fa281b017755efc1104526a Mon Sep 17 00:00:00 2001
+From: James Silver <james.silver@computerminds.co.uk>
+Date: Thu, 8 Aug 2013 10:43:30 +0100
+Subject: [PATCH] Add AjaxOperation framework
+
+---
+ cm_tools.info                                      |   4 +
+ cm_tools.module                                    | 151 ++++++++++++++++++-
+ handlers/ajax_operations/CMToolsAjaxOperation.inc  |  40 +++++
+ .../ajax_operations/CMToolsAjaxOperationBroken.inc |  15 ++
+ .../CMToolsAjaxOperationInterface.inc              |  49 ++++++
+ includes/ajax_operations.inc                       | 167 +++++++++++++++++++++
+ js/ajax-operations.js                              | 136 +++++++++++++++++
+ 7 files changed, 561 insertions(+), 1 deletion(-)
+ create mode 100644 handlers/ajax_operations/CMToolsAjaxOperation.inc
+ create mode 100644 handlers/ajax_operations/CMToolsAjaxOperationBroken.inc
+ create mode 100644 handlers/ajax_operations/CMToolsAjaxOperationInterface.inc
+ create mode 100644 includes/ajax_operations.inc
+ create mode 100644 js/ajax-operations.js
+
+diff --git a/cm_tools.info b/cm_tools.info
+index 2859a80..843575f 100644
+--- a/cm_tools.info
++++ b/cm_tools.info
+@@ -1,3 +1,7 @@
+ name = "Computerminds tools"
+ core = "7.x"
+ description = "A collection of tools and helpers written by Computerminds."
++
++files[] = "handlers/ajax_operations/CMToolsAjaxOperation.inc"
++files[] = "handlers/ajax_operations/CMToolsAjaxOperationBroken.inc"
++files[] = "handlers/ajax_operations/CMToolsAjaxOperationInterface.inc"
+diff --git a/cm_tools.module b/cm_tools.module
+index cd7d658..4677ef8 100644
+--- a/cm_tools.module
++++ b/cm_tools.module
+@@ -13,6 +13,115 @@
+ include_once 'cm_tools.element.inc';
+ 
+ /**
++ * Implements hook_menu().
++ */
++function cm_tools_menu() {
++  $items = array();
++
++  $items['ajax-operation/%cm_tools_ajax_operation'] = array(
++    'title' => 'AJAX Operation',
++    'page callback' => 'cm_tools_ajax_operation_callback',
++    'page arguments' => array(1),
++    'delivery callback' => 'ajax_deliver',
++    'access callback' => 'cm_tools_ajax_operation_access',
++    'access arguments' => array(1),
++    'theme callback' => 'ajax_base_page_theme',
++    'type' => MENU_CALLBACK,
++    'file' => 'includes/ajax_operations.inc',
++  );
++
++  return $items;
++}
++
++/**
++ * Menu loader for cm_tools ajax operations.
++ *
++ * @param $operation_name
++ *
++ * @return CMToolsAjaxOperationInterface|FALSE
++ */
++function cm_tools_ajax_operation_load($operation_name) {
++  ctools_include('plugins');
++  if (($plugin = ctools_get_plugins('cm_tools', 'ajax_operation', $operation_name)) && ($class = ctools_plugin_get_class($plugin, 'handler'))) {
++    $op = new $class();
++    $op->setPluginInfo($plugin);
++    return $op;
++  }
++  return FALSE;
++}
++
++/**
++ * Determine whether a user has access to the given
++ * ajax operation.
++ *
++ * @param CMToolsAjaxOperationInterface $op
++ * @param null $account
++ *   (Optional) The user account to check access for.
++ *   Defaults to the currently logged in user.
++ *
++ * @return boolean
++ */
++function cm_tools_ajax_operation_access(CMToolsAjaxOperationInterface $op, $account = NULL) {
++  if (!isset($account)) {
++    $account = $GLOBALS['user'];
++  }
++  return $op->access($account);
++}
++
++/**
++ * Implements hook_ctools_plugin_type().
++ */
++function cm_tools_ctools_plugin_type() {
++  return array(
++    'ajax_operation' => array(
++      'cache' => TRUE,
++      'use hooks' => TRUE,
++      'hook' => 'cm_tools_ajax_operations',
++      'classes' => array('handler'),
++      'alterable' => TRUE,
++      'defaults' => array(
++        'abstract' => FALSE,
++        'label' => 'Broken Ajax Operation',
++        'description' => '',
++        'parameters' => array(),
++        'handler' => array(
++          'class' => 'CMToolsAjaxOperationBroken',
++          'file' => 'CMToolsAjaxOperationBroken.inc',
++          'path' => drupal_get_path('module', 'cm_tools') . '/handlers/ajax_operations',
++        ),
++      ),
++    ),
++  );
++}
++
++/**
++ * Implements hook_ctools_plugin_api().
++ *
++ * @param $owner
++ * @param $api
++ * @return mixed
++ */
++function cm_tools_ctools_plugin_api($owner, $api) {
++  if ($owner === 'cm_tools' && $api === 'ajax_operation') {
++    return 1;
++  }
++}
++
++/**
++ * Implements hook_hook_info().
++ */
++function cm_tools_hook_info() {
++  $hooks = array();
++  $hooks['cm_tools_ajax_operations'] = array(
++    'group' => 'ajax_operations',
++  );
++  $hooks['cm_tools_ajax_operations_alter'] = array(
++    'group' => 'ajax_operations',
++  );
++  return $hooks;
++}
++
++/**
+  * Include .inc files as necessary.
+  *
+  * This fuction is helpful for including .inc files for your module. The
+@@ -52,6 +161,46 @@ function cm_tools_form_include(&$form_state, $file, $module = 'cm_tools', $dir =
+ }
+ 
+ /**
++ * Include js files as necessary.
++ *
++ * This helper function is used by ctools but can also be used in other
++ * modules in the same way as explained in the comments of ctools_include.
++ *
++ * @param $file
++ *   The base file name to be included.
++ * @param $module
++ *   Optional module containing the include.
++ * @param $dir
++ *   Optional subdirectory containing the include file.
++ */
++function cm_tools_add_js($file, $module = 'cm_tools', $dir = 'js') {
++  drupal_add_js(drupal_get_path('module', $module) . "/$dir/$file.js");
++}
++
++/**
++ * Format a javascript file name for use with $form['#attached']['js'].
++ *
++ * This helper function is used by ctools but can also be used in other
++ * modules in the same way as explained in the comments of ctools_include.
++ *
++ * @code
++ *   $form['#attached']['js'] = array(ctools_attach_js('auto-submit'));
++ * @endcode
++ *
++ * @param $file
++ *   The base file name to be included.
++ * @param $module
++ *   Optional module containing the include.
++ * @param $dir
++ *   Optional subdirectory containing the include file.
++ *
++ * @return string
++ */
++function cm_tools_attach_js($file, $module = 'cm_tools', $dir = 'js') {
++  return drupal_get_path('module', $module) . "/$dir/$file.js";
++}
++
++/**
+  * Inserts one or more suggestions into a theme_hook_suggestions array.
+  *
+  * @param $haystack
+@@ -309,7 +458,7 @@ function cm_tools_array_remove_values(&$haystack, $values) {
+ 
+   foreach ($values as $value_to_remove) {
+     $key = array_search($value_to_remove, $haystack);
+-    if ($key !== false) {
++    if ($key !== FALSE) {
+       unset($haystack[$key]);
+     }
+   }
+diff --git a/handlers/ajax_operations/CMToolsAjaxOperation.inc b/handlers/ajax_operations/CMToolsAjaxOperation.inc
+new file mode 100644
+index 0000000..2c92ab2
+--- /dev/null
++++ b/handlers/ajax_operations/CMToolsAjaxOperation.inc
+@@ -0,0 +1,40 @@
++<?php
++
++/**
++ * @file Helpful parent class for all Ajax Operations.
++ */
++class CMToolsAjaxOperation implements CMToolsAjaxOperationInterface {
++
++  protected $plugin_info;
++
++  /**
++   * {@inheritdoc}
++   */
++  public function setPluginInfo(array $plugin_info) {
++    $this->plugin_info = $plugin_info;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function getPluginInfo($key = NULL) {
++    if (isset($key)) {
++      return isset($this->plugin_info[$key]) ? $this->plugin_info[$key] : NULL;
++    }
++    return isset($this->plugin_info) ? $this->plugin_info : array();
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function access($account) {
++    return TRUE;
++  }
++
++  /**
++   * {@inheritdoc}
++   */
++  public function execute($parameters) {
++    return array();
++  }
++}
+diff --git a/handlers/ajax_operations/CMToolsAjaxOperationBroken.inc b/handlers/ajax_operations/CMToolsAjaxOperationBroken.inc
+new file mode 100644
+index 0000000..cff33ca
+--- /dev/null
++++ b/handlers/ajax_operations/CMToolsAjaxOperationBroken.inc
+@@ -0,0 +1,15 @@
++<?php
++
++/**
++ * @file AjaxOperation class used in case of error.
++ */
++
++class CMToolsAjaxOperationBroken extends CMToolsAjaxOperation {
++
++  /**
++   * {@inheritdoc}
++   */
++  public function access($account) {
++    return FALSE;
++  }
++}
+diff --git a/handlers/ajax_operations/CMToolsAjaxOperationInterface.inc b/handlers/ajax_operations/CMToolsAjaxOperationInterface.inc
+new file mode 100644
+index 0000000..e6b099f
+--- /dev/null
++++ b/handlers/ajax_operations/CMToolsAjaxOperationInterface.inc
+@@ -0,0 +1,49 @@
++<?php
++
++/**
++ * @file Interface for CMTools Ajax Operations.
++ */
++interface CMToolsAjaxOperationInterface {
++
++  /**
++   * Sets the CTools plugin info for this handler..
++   *
++   * @param array $plugin_info
++   *
++   * @return array
++   */
++  public function setPluginInfo(array $plugin_info);
++
++  /**
++   * Return CTools plugin info associated with this handler.
++   *
++   * @param null $key
++   *   Optionally return the value of a certain key in the info
++   *   array.
++   *
++   * @return array|mixed|null
++   */
++  public function getPluginInfo($key = NULL);
++
++  /**
++   * Determine whether the given user is permitted to access
++   * this Ajax operation.
++   *
++   * @param $account
++   *
++   * @return boolean
++   */
++  public function access($account);
++
++  /**
++   * Execute your operation and return a standard array of
++   * Drupal Ajax commands to execute client side.
++   *
++   * @param $parameters
++   *   Array of parameters passed to your operation.
++   *
++   * @return array
++   */
++  public function execute($parameters);
++
++}
+diff --git a/includes/ajax_operations.inc b/includes/ajax_operations.inc
+new file mode 100644
+index 0000000..ca39564
+--- /dev/null
++++ b/includes/ajax_operations.inc
+@@ -0,0 +1,167 @@
++<?php
++
++/**
++ * @file CMTools Ajax Operation Framework.
++ *
++ * Provides a mechanism for javascript to make arbitrary Ajax
++ * requests to the server. It consists of two components:
++ *
++ *   1. Client-side Drupal.CMToolsAjaxOperation javascript method.
++ *
++ *      Custom javascript code can call this method to invoke
++ *      a Drupal.ajax request outside of the context of a DOM
++ *      Element. Such code passes an 'op' name which CMTools
++ *      resolves to an AjaxOperation handler server side. E.g.
++ *
++ *        var xhr = Drupal.CMToolsAjaxOperation('mymodule_operation_name', {param: 'value'}, function(data) {
++ *          // This is a direct callback which is invoked for each instance
++ *          // of cm_tools_ajax_command_callback() returned by the server.
++ *        });
++ *
++ *      The CMTools Ajax Operations javascript will need to have
++ *      been already included on the page for this method to be
++ *      present. This can be achieved with the following code:
++ *
++ *        drupal_add_library('system', 'drupal.ajax');
++ *        cm_tools_add_js('ajax-operations');
++ *
++ *      See cm_tools/js/ajax-operations.js for full details of the
++ *      parameters accepted by Drupal.CMToolsAjaxOperation(). In
++ *      most cases it is not too hard to replace out some custom
++ *      javascript's call to jQuery.ajax() with this method.
++ *
++ *   2. Server-side AjaxOperation handler.
++ *
++ *     You will need to declare a handler for your operation. This is done
++ *     CTools-stylee as follows:
++ *
++ *       In mymodule.module:
++ *
++ *       /**
++ *        * Implements hook_ctools_plugin_api().
++ *        * /
++ *       function mymodule_ctools_plugin_api($owner, $api) {
++ *         if ($owner === 'cm_tools' && $api === 'ajax_operation') {
++ *           return 1;
++ *         }
++ *       }
++ *
++ *       In mymodule.ajax_operations.inc:
++ *
++ *       /**
++ *        * Implements hook_cm_tools_ajax_operations().
++ *        * /
++ *       function mymodule_cm_tools_ajax_operations() {
++ *         $ops = array();
++ *
++ *         $ops['mymodule_operation_name'] = array(
++ *           'label' => t('My Module Operation'),
++ *
++ *           // Named parameters you expect, and default
++ *           // values for when they are not included.
++ *           'parameters' => array(),
++ *
++ *           // Details of where to find your handler.
++ *           'handler' => array(
++ *             'class' => 'MyModuleAjaxOperationNAME',
++ *             'file' => 'MyModuleAjaxOperationNAME.inc',
++ *             'path' => drupal_get_path('module', 'mymodule') . '/handlers/ajax_operations',
++ *           ),
++ *         );
++ *         return $ops;
++ *       }
++ *
++ *       And finally your handler
++ *       (in e.g. mymodule/handlers/ajax_operations/MyModuleAjaxOperationNAME.inc):
++ *
++ *         class MyModuleAjaxOperationNAME extends CMToolsAjaxOperation {
++ *
++ *           /**
++ *            * {@inheritdoc}
++ *            * /
++ *           public function execute($parameters) {
++ *             $commands = array();
++ *
++ *             // Do whatever you need to do and return
++ *             // an array of ajax commands.
++ *
++ *             // You may use the special cm_tools_callback command
++ *             // which directly calls the callback passed to
++ *             // Drupal.CMToolsAjaxOperation with an arbitrary array
++ *             // of parameters.
++ *             $commands[] = cm_tools_ajax_command_callback($params_to_return);
++ *
++ *             return $commands;
++ *           }
++ *         }
++ *
++ *   NOTE: Any module may alter the array of commands returned for any operation
++ *   by implementing the following hooks:
++ *
++ *     // Generally
++ *     hook_cm_tools_ajax_operation_commands_alter(&$commands, &$context).
++ *
++ *     // Or more specifically
++ *     hook_cm_tools_ajax_operation_OPNAME_commands_alter(&$commands, &$context).
++ */
++
++/**
++ * Menu callback for an Ajax operation.
++ *
++ * @param CMToolsAjaxOperationInterface $op
++ *   The Ajax operation to execute.
++ *
++ * @return array of Drupal Ajax commands.
++ */
++function cm_tools_ajax_operation_callback(CMToolsAjaxOperationInterface $op) {
++
++  $all_parameters = $_GET + $_POST;
++  unset($all_parameters['js']);
++  unset($all_parameters['q']);
++  unset($all_parameters['ajax_page_state']);
++  unset($all_parameters['ajax_html_ids']);
++
++  // Only the pass the requested parameters to the op.
++  $parameters = array_intersect_key($all_parameters, $op->getPluginInfo('parameters'));
++  // Use default values where no parameter was passed.
++  $parameters += $op->getPluginInfo('parameters');
++
++  $commands = $op->execute($parameters);
++
++  // Allow others to alter the result.
++  $context = array(
++    'op' => $op,
++    'operation_name' => $op->getPluginInfo('name'),
++    'parameters' => &$parameters,
++  );
++  drupal_alter(array(
++    'cm_tools_ajax_operation_commands',
++    'cm_tools_ajax_operation_' . $op->getPluginInfo('name') . '_commands'
++  ), $commands, $context);
++
++  return array(
++    '#type' => 'ajax',
++    '#commands' => $commands,
++  );
++}
++
++/**
++ * Directly calls the Ajax request's initiator's callback.
++ *
++ * This will only work if the request was initiated by a call
++ * (in javascript) to Drupal.CMToolsAjaxOperation() (OR some
++ * other intelligently customized invocation of Drupal.Ajax
++ * which provided a ctools_custom_callback.
++ *
++ * @param array $parameters
++ *   Arbitrary array of parameters to pass to the callback.
++ *
++ * @return array
++ */
++function cm_tools_ajax_command_callback($parameters) {
++  cm_tools_add_js('ajax-operations');
++  return array(
++    'command' => 'cm_tools_callback',
++    'data' => $parameters,
++  );
++}
+diff --git a/js/ajax-operations.js b/js/ajax-operations.js
+new file mode 100644
+index 0000000..0bb4922
+--- /dev/null
++++ b/js/ajax-operations.js
+@@ -0,0 +1,136 @@
++(function($) {
++
++  var id_count = 0;
++
++  /**
++   * Initiates a Drupal Ajax request to the server
++   * outside of the context of a DOM element.
++   *
++   * @param op
++   *   Name of the operation to perform.
++   *
++   * @param parameters
++   *   (Optional) Named parameters to pass up with the operation.
++   *   There are some special keys that are not allowed here:
++   *
++   *     'q'
++   *     'js'
++   *     Anything beginning with 'ajax'
++   *
++   * @param callback
++   *   (Optional) This function is called for each time the
++   *   server responds with a ajax_command_callback() command.
++   *   It accepts the following parameters:
++   *
++   *     data     A map of named parameters returned by the server,
++   *     success  Drupal.ajax success value.
++   *
++   * @param ajax_options
++   *   Specify / override ajax options for the $.ajax call.
++   *
++   * @param path
++   *   (Optional) The path to fire the request to (WITH
++   *   leading forward-slash /). By default, the request
++   *   is handled by CM Tools' Ajax Operations framework.
++   *
++   * @return XHR object returned by the jQuery.ajax() call.
++   */
++  Drupal.CMToolsAjaxOperation = function(op, parameters, callback, ajax_options, path) {
++
++    if (!$.isFunction(callback)) {
++      callback = function(){};
++    }
++    parameters = parameters || {}
++    ajax_options = ajax_options || {};
++    path = path || '/ajax-operation';
++
++    // The only way I can possibly find of making a Drupal 7 Core
++    // AJAX request that processes the response as AJAX Commands
++    // is by doing it through a DOM Element event.
++    var id = 'cm-tools-ajax-operation-' + id_count++;
++    var $el = $('<div id="' + id + '"></div>');
++
++    // @see misc/ajax.js
++    var element_settings = {};
++    element_settings.url = path + '/' + op;
++    element_settings.event = 'cm_tools_fake_event';
++    element_settings.cm_tools_callback = callback;
++    element_settings.submit = parameters;
++    element_settings.submit['js'] = true;
++    var base = $el.attr('id');
++    var ajax = new Drupal.ajax(base, $el, element_settings);
++
++    // We do not allow ajax options passed in to override those
++    // provided by Drupal.ajax 'automatically'.
++    ajax.options = $.extend({}, ajax_options, ajax.options);
++
++    // We special case Drupal.ajax's callbacks, so the caller
++    // *can* override them but they still get called.
++    var callbacks = ['beforeSerialize', 'beforeSubmit', 'beforeSend', 'success', 'complete'];
++    for (var i = 0; i < callbacks.length; i++) {
++      var callback = callbacks[i];
++      if (ajax_options[callback]) {
++        // Actually set the callback to a function which calls Drupal's original
++        // function, and then the new one we want to use.
++        (function(original_callback, new_callback){
++          ajax.options[callback] = function() {
++            var args = Array.prototype.slice.call(arguments);
++            var ret;
++            ret = original_callback.apply(this, args);
++            if (ret !== false) {
++              ret = new_callback.apply(this, args);
++            }
++            return ret;
++          }
++        })(ajax.options[callback], ajax_options[callback]);
++      }
++    }
++
++    // Need our own eventResponse callback to capture the XHR
++    // object. This is because we want to return that object
++    // ourselves.
++    ajax.eventResponse = function(element, event) {
++      if (this.ajaxing) {
++        return false;
++      }
++      try {
++        this.beforeSerialize(this.element, this.options);
++        this.xhr = $.ajax(this.options);
++      }
++      catch (e) {
++        this.ajaxing = false;
++      }
++    }
++
++    // And now trigger our fake event
++    $el.trigger('cm_tools_fake_event');
++    $el.unbind('cm_tools_fake_event');
++
++    return ajax.xhr;
++  }
++
++  // Stick these in a ready to make sure Drupal.ajax is around.
++  $(function() {
++
++    // We need the Ajax framework to have been loaded.
++    if (!Drupal.ajax) {
++      return;
++    }
++
++    /**
++     * If the initiator of the ajax request provided a cm_tools_callback
++     * in the element_settings then we call it directly passing in the
++     * data returned from the server.
++     *
++     * @param ajax
++     * @param data
++     * @param status
++     */
++    Drupal.ajax.prototype.commands.cm_tools_callback = function(ajax, data, status) {
++      if (ajax.element_settings.cm_tools_callback && $.isFunction(ajax.element_settings.cm_tools_callback)) {
++        ajax.element_settings.cm_tools_callback.call(ajax, data.data, status);
++      }
++    };
++  });
++
++})(jQuery);
+-- 
+1.8.2
+
