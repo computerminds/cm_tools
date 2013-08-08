@@ -163,8 +163,8 @@ function cm_tools_form_include(&$form_state, $file, $module = 'cm_tools', $dir =
 /**
  * Include js files as necessary.
  *
- * This helper function is used by ctools but can also be used in other
- * modules in the same way as explained in the comments of ctools_include.
+ * This helper function is used by cm_tools but can also be used in other
+ * modules in the same way as explained in the comments of cm_tools_include.
  *
  * @param $file
  *   The base file name to be included.
@@ -180,11 +180,11 @@ function cm_tools_add_js($file, $module = 'cm_tools', $dir = 'js') {
 /**
  * Format a javascript file name for use with $form['#attached']['js'].
  *
- * This helper function is used by ctools but can also be used in other
- * modules in the same way as explained in the comments of ctools_include.
+ * This helper function is used by cm_tools but can also be used in other
+ * modules in the same way as explained in the comments of cm_tools_include.
  *
  * @code
- *   $form['#attached']['js'] = array(ctools_attach_js('auto-submit'));
+ *   $form['#attached']['js'] = array(cm_tools_attach_js('auto-submit'));
  * @endcode
  *
  * @param $file
@@ -458,7 +458,7 @@ function cm_tools_array_remove_values(&$haystack, $values) {
 
   foreach ($values as $value_to_remove) {
     $key = array_search($value_to_remove, $haystack);
-    if ($key !== FALSE) {
+    if ($key !== false) {
       unset($haystack[$key]);
     }
   }
