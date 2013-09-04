@@ -17,7 +17,8 @@ function cm_tools_block_position($module, $delta, $block = array(), $all_themes 
     'theme' => variable_get('theme_default', 'seven'),
     'weight' => 0,
     'cache' => -1,
-    'status' => 1,
+    // Only enable the block by default if a region is supplied.
+    'status' => !empty($block['region']),
     'title' => '',
     'region' => '',
     'pages' => '',
