@@ -498,3 +498,22 @@ function cm_tools_preprocess_page(&$vars) {
     }
   }
 }
+
+/**
+ * Add an external JS file in a non-blocking manner, once per page.
+ *
+ * Ideally, use as an #attached callback to be caching-friendly, like so:
+ *
+ *   $render_array['#attached']['cm_tools_add_async_js'][] = array(<url>, <id>);
+ *
+ * @param  $script
+ *   The URL of the script to load (schemeless/protocol relative are
+ *   best, for avoiding mixed http/https content warnings).
+ * @param  $id
+ *   The id to give the script tag (to prevent multiple loads).
+ */
+function cm_tools_add_async_js($script = '', $id = '') {
+  drupal_add_js('!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="' . $script . '";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","' . $id . '");',
+    array('type' => 'inline', 'scope' => 'footer', 'weight' => 5)
+  );
+}
