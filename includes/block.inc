@@ -27,6 +27,7 @@ function cm_tools_block_position($module, $delta, $block = array(), $all_themes 
     $block += array(
       'i18n_mode' => 0,
     );
+    i18n_block_update_strings($block, $block['i18n_mode']);
   }
 
   // Set default keys for the db_merge query.
