@@ -23,6 +23,12 @@ function cm_tools_block_position($module, $delta, $block = array(), $all_themes 
     'region' => '',
     'pages' => '',
   );
+  if (module_exists('i18n_block')) {
+    $block += array(
+      'i18n_mode' => 0,
+    );
+    i18n_block_update_strings($block, $block['i18n_mode']);
+  }
 
   // Set default keys for the db_merge query.
   $merge_keys = array(
@@ -48,6 +54,7 @@ function cm_tools_block_position($module, $delta, $block = array(), $all_themes 
       'theme'  => TRUE,
       'title'  => TRUE,
       'pages'  => TRUE,
+      'i18n_mode' => TRUE,
     )))
     ->updateFields(array_intersect_key($block, array(
       'cache'  => TRUE,
@@ -56,6 +63,7 @@ function cm_tools_block_position($module, $delta, $block = array(), $all_themes 
       'region' => TRUE,
       'title' => TRUE,
       'pages'  => TRUE,
+      'i18n_mode' => TRUE,
     )))
     ->execute();
 }
