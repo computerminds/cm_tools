@@ -46,7 +46,7 @@ function cm_tools_item_list_pre_render($elements) {
 
     // An item can be it's contents directly, or the
     // contents can be found in the 'data' property.
-    if (isset($item['data'])) {
+    if (is_array($item) && isset($item['data'])) {
       $item = &$item['data'];
     }
 
