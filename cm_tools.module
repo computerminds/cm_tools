@@ -13,6 +13,115 @@
 include_once 'cm_tools.element.inc';
 
 /**
+ * Implements hook_menu().
+ */
+function cm_tools_menu() {
+  $items = array();
+
+  $items['ajax-operation/%cm_tools_ajax_operation'] = array(
+    'title' => 'AJAX Operation',
+    'page callback' => 'cm_tools_ajax_operation_callback',
+    'page arguments' => array(1),
+    'delivery callback' => 'ajax_deliver',
+    'access callback' => 'cm_tools_ajax_operation_access',
+    'access arguments' => array(1),
+    'theme callback' => 'ajax_base_page_theme',
+    'type' => MENU_CALLBACK,
+    'file' => 'includes/ajax_operations.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Menu loader for cm_tools ajax operations.
+ *
+ * @param $operation_name
+ *
+ * @return CMToolsAjaxOperationInterface|FALSE
+ */
+function cm_tools_ajax_operation_load($operation_name) {
+  ctools_include('plugins');
+  if (($plugin = ctools_get_plugins('cm_tools', 'ajax_operation', $operation_name)) && ($class = ctools_plugin_get_class($plugin, 'handler'))) {
+    $op = new $class();
+    $op->setPluginInfo($plugin);
+    return $op;
+  }
+  return FALSE;
+}
+
+/**
+ * Determine whether a user has access to the given
+ * ajax operation.
+ *
+ * @param CMToolsAjaxOperationInterface $op
+ * @param null $account
+ *   (Optional) The user account to check access for.
+ *   Defaults to the currently logged in user.
+ *
+ * @return boolean
+ */
+function cm_tools_ajax_operation_access(CMToolsAjaxOperationInterface $op, $account = NULL) {
+  if (!isset($account)) {
+    $account = $GLOBALS['user'];
+  }
+  return $op->access($account);
+}
+
+/**
+ * Implements hook_ctools_plugin_type().
+ */
+function cm_tools_ctools_plugin_type() {
+  return array(
+    'ajax_operation' => array(
+      'cache' => TRUE,
+      'use hooks' => TRUE,
+      'hook' => 'cm_tools_ajax_operations',
+      'classes' => array('handler'),
+      'alterable' => TRUE,
+      'defaults' => array(
+        'abstract' => FALSE,
+        'label' => 'Broken Ajax Operation',
+        'description' => '',
+        'parameters' => array(),
+        'handler' => array(
+          'class' => 'CMToolsAjaxOperationBroken',
+          'file' => 'CMToolsAjaxOperationBroken.inc',
+          'path' => drupal_get_path('module', 'cm_tools') . '/handlers/ajax_operations',
+        ),
+      ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_ctools_plugin_api().
+ *
+ * @param $owner
+ * @param $api
+ * @return mixed
+ */
+function cm_tools_ctools_plugin_api($owner, $api) {
+  if ($owner === 'cm_tools' && $api === 'ajax_operation') {
+    return 1;
+  }
+}
+
+/**
+ * Implements hook_hook_info().
+ */
+function cm_tools_hook_info() {
+  $hooks = array();
+  $hooks['cm_tools_ajax_operations'] = array(
+    'group' => 'ajax_operations',
+  );
+  $hooks['cm_tools_ajax_operations_alter'] = array(
+    'group' => 'ajax_operations',
+  );
+  return $hooks;
+}
+
+/**
  * Include .inc files as necessary.
  *
  * This fuction is helpful for including .inc files for your module. The
@@ -49,6 +158,46 @@ function cm_tools_include($file, $module = 'cm_tools', $dir = 'includes') {
 function cm_tools_form_include(&$form_state, $file, $module = 'cm_tools', $dir = 'includes') {
   $dir = '/' . ($dir ? $dir . '/' : '');
   form_load_include($form_state, 'inc', $module, $dir . $file);
+}
+
+/**
+ * Include js files as necessary.
+ *
+ * This helper function is used by cm_tools but can also be used in other
+ * modules in the same way as explained in the comments of cm_tools_include.
+ *
+ * @param $file
+ *   The base file name to be included.
+ * @param $module
+ *   Optional module containing the include.
+ * @param $dir
+ *   Optional subdirectory containing the include file.
+ */
+function cm_tools_add_js($file, $module = 'cm_tools', $dir = 'js') {
+  drupal_add_js(drupal_get_path('module', $module) . "/$dir/$file.js");
+}
+
+/**
+ * Format a javascript file name for use with $form['#attached']['js'].
+ *
+ * This helper function is used by cm_tools but can also be used in other
+ * modules in the same way as explained in the comments of cm_tools_include.
+ *
+ * @code
+ *   $form['#attached']['js'] = array(cm_tools_attach_js('auto-submit'));
+ * @endcode
+ *
+ * @param $file
+ *   The base file name to be included.
+ * @param $module
+ *   Optional module containing the include.
+ * @param $dir
+ *   Optional subdirectory containing the include file.
+ *
+ * @return string
+ */
+function cm_tools_attach_js($file, $module = 'cm_tools', $dir = 'js') {
+  return drupal_get_path('module', $module) . "/$dir/$file.js";
 }
 
 /**
