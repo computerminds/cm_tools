@@ -421,6 +421,14 @@ function cm_tools_theme($existing, $type, $theme, $path) {
   return $items;
 }
 
+/**
+ * Implements hook_preprocess().
+ */
+function cm_tools_preprocess(&$variables, $hook) {
+  if (variable_get('cm_tools_decruft_classes', FALSE)) {
+    cm_tools_array_remove_values($variables['classes_array'], drupal_html_class($hook));
+  }
+}
 
 /**
  * Implements hook_preprocess_entity().
@@ -482,21 +490,35 @@ function cm_tools_preprocess_entity(&$vars, $hook, $suggestion_prefix = 'entity_
     if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
       cm_tools_insert_theme_hook_suggestion($vars['theme_hook_suggestions'], "{$entity_type}__{$id}", $suggestion_prefix . $suggestion);
     }
-  }
 
-  // Add a class indicating view mode.
-  $classes = array();
-  $classes[] = drupal_clean_css_identifier("{$entity_type}-{$view_mode}");
-  // Also add entity-bundle-view_mode combo
-  $classes[] = drupal_clean_css_identifier("{$entity_type}-{$bundle}-{$view_mode}");
-  if (isset($vars['classes_array'])) {
-    $vars['classes_array'] = array_merge($vars['classes_array'], $classes);
-  }
-  elseif (isset($vars['attributes_array'])) {
-    $vars['attributes_array'] = array_merge_recursive($vars['attributes_array'], array('class' => $classes));
-  }
-  elseif (isset($vars['classes']) && is_string($vars['classes'])) {
-    $vars['classes'] .= ' ' . implode(' ', $classes);
+    // We either supplement the default classes, or strip them. If you're going
+    // to do it at all, may as well go all out.
+    $classes = array();
+    // If we're stripping…
+    if (variable_get('cm_tools_decruft_classes', FALSE)) {
+      // Ditch some standard entity ones.
+      cm_tools_array_remove_values($vars['classes_array'], array(
+        drupal_html_class('entity-' . $entity_type),
+        drupal_html_class($entity_type . '-' . $bundle),
+      ));
+    }
+    // Else we'll supplement…
+    else {
+      // Add a class indicating view mode.
+      $classes[] = drupal_clean_css_identifier("{$entity_type}-{$view_mode}");
+      // Also add entity-bundle-view_mode combo
+      $classes[] = drupal_clean_css_identifier("{$entity_type}-{$bundle}-{$view_mode}");
+    }
+
+    if (isset($vars['classes_array'])) {
+      $vars['classes_array'] = array_merge($vars['classes_array'], $classes);
+    }
+    elseif (isset($vars['attributes_array'])) {
+      $vars['attributes_array'] = array_merge_recursive($vars['attributes_array'], array('class' => $classes));
+    }
+    elseif (isset($vars['classes']) && is_string($vars['classes'])) {
+      $vars['classes'] .= ' ' . implode(' ', $classes);
+    }
   }
 }
 
@@ -516,6 +538,14 @@ function cm_tools_preprocess_comment(&$vars, $hook) {
  */
 function cm_tools_preprocess_node(&$vars, $hook) {
   $vars['entity_type'] = 'node';
+  if (variable_get('cm_tools_decruft_classes', FALSE)) {
+    cm_tools_array_remove_values($vars['classes_array'], array(
+      'node-promoted',
+      'node-sticky',
+      'node-teaser',
+      'node-preview',
+    ));
+  }
   cm_tools_preprocess_entity($vars, $hook, '');
 }
 
@@ -525,6 +555,11 @@ function cm_tools_preprocess_node(&$vars, $hook) {
 function cm_tools_preprocess_taxonomy_term(&$vars, $hook) {
   $vars['entity_type'] = 'taxonomy_term';
   $vars[$vars['entity_type']] = $vars['term'];
+  if (variable_get('cm_tools_decruft_classes', FALSE)) {
+    cm_tools_array_remove_values($vars['classes_array'], array(
+      'vocabulary-' . str_replace('_', '-', $vars['term']->vocabulary_machine_name),
+    ));
+  }
   cm_tools_preprocess_entity($vars, $hook, '');
 }
 
