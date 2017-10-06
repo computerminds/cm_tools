@@ -328,41 +328,24 @@ function cm_tools_array_remove_values(&$haystack, $values) {
  * @param callable $cmp_function
  */
 function cm_tools_stable_usort(&$array, $cmp_function) {
-  // Arrays of size < 2 require no action.
-  if (count($array) < 2) return;
-  // Split the array in half
-  $halfway = count($array) / 2;
-  $array1 = array_slice($array, 0, $halfway);
-  $array2 = array_slice($array, $halfway);
-  // Recurse to sort the two halves
-  cm_tools_stable_usort($array1, $cmp_function);
-  cm_tools_stable_usort($array2, $cmp_function);
-  // If all of $array1 is <= all of $array2, just append them.
-  if (call_user_func($cmp_function, end($array1), $array2[0]) < 1) {
-    $array = array_merge($array1, $array2);
-    return;
+  $index = 0;
+  foreach ($array as &$item) {
+    $item = array($index++, $item);
   }
-  // Merge the two sorted arrays into a single sorted array
-  $array = array();
-  $ptr1 = $ptr2 = 0;
-  while ($ptr1 < count($array1) && $ptr2 < count($array2)) {
-    if (call_user_func($cmp_function, $array1[$ptr1], $array2[$ptr2]) < 1) {
-      $array[] = $array1[$ptr1++];
-    }
-    else {
-      $array[] = $array2[$ptr2++];
-    }
+  $result = usort($array, function($a, $b) use($cmp_function) {
+    $result = call_user_func($cmp_function, $a[1], $b[1]);
+    return $result == 0 ? $a[0] - $b[0] : $result;
+  });
+  foreach ($array as &$item) {
+    $item = $item[1];
   }
-  // Merge the remainder
-  while ($ptr1 < count($array1)) $array[] = $array1[$ptr1++];
-  while ($ptr2 < count($array2)) $array[] = $array2[$ptr2++];
-  return;
+  return $result;
 }
 
 /**
  * Sort an array by user-defined comparison function, preserving indexes.
  *
- * However, unlike ussort, equal values maintain their order.
+ * However, unlike uasort, equal values maintain their order.
  *
  * The comparison function must return an integer less than, equal to, or
  * greater than zero if the first argument is considered to be
@@ -372,40 +355,18 @@ function cm_tools_stable_usort(&$array, $cmp_function) {
  * @param callable $cmp_function
  */
 function cm_tools_stable_uasort(&$array, $cmp_function) {
-  if(count($array) < 2) {
-    return;
+  $index = 0;
+  foreach ($array as &$item) {
+    $item = array($index++, $item);
   }
-  $halfway = count($array) / 2;
-  $array1 = array_slice($array, 0, $halfway, TRUE);
-  $array2 = array_slice($array, $halfway, NULL, TRUE);
-
-  cm_tools_stable_uasort($array1, $cmp_function);
-  cm_tools_stable_uasort($array2, $cmp_function);
-  if(call_user_func($cmp_function, end($array1), reset($array2)) < 1) {
-    $array = $array1 + $array2;
-    return;
+  $result = uasort($array, function($a, $b) use($cmp_function) {
+    $result = call_user_func($cmp_function, $a[1], $b[1]);
+    return $result == 0 ? $a[0] - $b[0] : $result;
+  });
+  foreach ($array as &$item) {
+    $item = $item[1];
   }
-  $array = array();
-  reset($array1);
-  reset($array2);
-  while(current($array1) && current($array2)) {
-    if(call_user_func($cmp_function, current($array1), current($array2)) < 1) {
-      $array[key($array1)] = current($array1);
-      next($array1);
-    } else {
-      $array[key($array2)] = current($array2);
-      next($array2);
-    }
-  }
-  while(current($array1)) {
-    $array[key($array1)] = current($array1);
-    next($array1);
-  }
-  while(current($array2)) {
-    $array[key($array2)] = current($array2);
-    next($array2);
-  }
-  return;
+  return $result;
 }
 
 /**
