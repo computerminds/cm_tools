@@ -1,3 +1,4 @@
 name = "Computerminds tools"
 core = "7.x"
 description = "A collection of tools and helpers written by Computerminds."
+php = 5.3
