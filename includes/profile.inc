@@ -146,6 +146,17 @@ function cm_tools_update_entity_walk(&$sandbox, $entity_type, $callback, $bundle
  * The results of the query, and the state of the iterations are stored in the
  * sandbox.
  *
+ * Example usage:
+ * @code
+ * function node_update_7017(&$sandbox) {
+ *   cm_tools_include('profile');
+ *   cm_tools_update_node_walk($sandbox, function($node) {
+ *     // Load and save all article nodes.
+ *     node_save($node);
+ *   }, 'article');
+ * }
+ * @endcode
+ *
  * @param $sandbox
  *   The sandbox passed to the drupal hook hook that this function is called from.
  * @param $callback
@@ -177,7 +188,7 @@ function cm_tools_update_node_walk(&$sandbox, $callback, $node_type = NULL, $nod
  * @param int $entities_per_pass
  *   The number of entities to load and process in each batch iteration.
  *
- * @return
+ * @return array
  *   An associative array of entity types mapped to entities to process in the
  *   iteration.
  */
@@ -210,7 +221,7 @@ function cm_tools_update_efq(&$sandbox, EntityFieldQuery $query, $entities_per_p
  * @param int $entities_per_pass
  *   The number of entities to load and process in each batch iteration.
  *
- * @return
+ * @return array
  *   An array of entities to process in this iteration.
  */
 function cm_tools_update_entity(&$sandbox, $entity_type, $bundle = NULL, $entities_per_pass = 10) {
@@ -233,6 +244,17 @@ function cm_tools_update_entity(&$sandbox, $entity_type, $bundle = NULL, $entiti
  * The results of the query, and the state of the iterations are stored in the
  * sandbox.
  *
+ * Example usage:
+ * @code
+ * function node_update_7018(&$sandbox) {
+ *   cm_tools_include('profile');
+ *   // Load and save all article nodes.
+ *   foreach (cm_tools_update_node($sandbox, 'article') as $node) {
+ *     node_save($node);
+ *   }
+ * }
+ * @endcode
+ *
  * @param $sandbox
  *   The sandbox passed to the drupal hook hook that this function is called from.
  * @param NULL|string $node_type
@@ -240,7 +262,7 @@ function cm_tools_update_entity(&$sandbox, $entity_type, $bundle = NULL, $entiti
  * @param int $nodes_per_pass
  *   The number of nodes to load and process in each batch iteration.
  *
- * @return
+ * @return array
  *   An array of nodes to process in this iteration.
  */
 function cm_tools_update_node(&$sandbox, $node_type = NULL, $nodes_per_pass = 10) {
@@ -262,6 +284,15 @@ function cm_tools_update_node(&$sandbox, $node_type = NULL, $nodes_per_pass = 10
  * accepts the sandbox that is passed to the update hook as its first parameter.
  * The results of the query, and the state of the iterations are stored in the
  * sandbox.
+ *
+ * Example usage:
+ * @code
+ * function node_update_7019(&$sandbox) {
+ *   cm_tools_include('profile');
+ *   // Fill in missing default values in the 'field_new_field' on article nodes.
+ *   cm_tools_update_missing_default_field_values_insert($sandbox, 'node', 'article', 'field_new_field');
+ * }
+ * @endcode
  *
  * @param $sandbox
  *   The sandbox passed to the drupal hook hook that this function is called from.
