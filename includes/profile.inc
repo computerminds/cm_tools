@@ -49,7 +49,23 @@ function cm_tools_module_disable($modules) {
 }
 
 /**
- * Helper for batch executing a callback across all nodes of a given type.
+ * Apply a given callback to the entities returned by the given EntityFieldQuery.
+ *
+ * This function is designed to work in the context of a Drupal update hook, it
+ * accepts the sandbox that is passed to the update hook as its first parameter.
+ * The results of the query, and the state of the iterations are stored in the
+ * sandbox.
+ *
+ * @param $sandbox
+ *   The sandbox passed to the drupal hook hook that this function is called from.
+ * @param \EntityFieldQuery $query
+ *   The EntityFieldQuery to execute and iterate over the results of.
+ * @param $callback
+ *   The callback to apply to each entity returned from the $query. The callback is called with two arguments:
+ *   - The entity type of the entity in the second argument
+ *   - The loaded entity.
+ * @param int $entities_per_pass
+ *   The number of entities to load and process in each batch iteration.
  */
 function cm_tools_update_efq_walk(&$sandbox, EntityFieldQuery $query, $callback, $entities_per_pass = 10) {
   // If this is the first pass through this update function then work out the work to be done here..
@@ -82,12 +98,28 @@ function cm_tools_update_efq_walk(&$sandbox, EntityFieldQuery $query, $callback,
 
   // Set the value for finished. If current == total then finished will be 1, signifying we are done.
   $sandbox['#finished'] = $sandbox['_cm_tools_update_efq_batch']['current'] / $sandbox['_cm_tools_update_efq_batch']['total'];
-
-  return NULL;
 }
 
 /**
- * Helper for batch executing a callback across all entities of a given type.
+ * Apply a given callback to all entities of a specific type, and optionally bundle.
+ *
+ * This function is designed to work in the context of a Drupal update hook, it
+ * accepts the sandbox that is passed to the update hook as its first parameter.
+ * The results of the query, and the state of the iterations are stored in the
+ * sandbox.
+ *
+ * @param $sandbox
+ *   The sandbox passed to the drupal hook hook that this function is called from.
+ * @param string $entity_type
+ *   The entity type to iterate over.
+ * @param $callback
+ *   The callback to apply to each entity returned from the $query. The callback is called with two arguments:
+ *   - The entity type of the entity in the second argument
+ *   - The loaded entity.
+ * @param NULL|string $bundle
+ *   The bundle to iterate over, if NULL then all bundles of the given entity type will be iterated.
+ * @param int $entities_per_pass
+ *   The number of entities to load and process in each batch iteration.
  */
 function cm_tools_update_entity_walk(&$sandbox, $entity_type, $callback, $bundle = NULL, $entities_per_pass = 10) {
   $query = new EntityFieldQuery();
@@ -103,19 +135,51 @@ function cm_tools_update_entity_walk(&$sandbox, $entity_type, $callback, $bundle
     call_user_func($callback, $entity);
   };
 
-  return cm_tools_update_efq_walk($sandbox, $query, $wrapper_callback, $entities_per_pass);
+  cm_tools_update_efq_walk($sandbox, $query, $wrapper_callback, $entities_per_pass);
 }
 
 /**
- * Helper for batch executing a callback across all nodes of a given type.
+ * Apply a given callback to all nodes of a specific type.
+ *
+ * This function is designed to work in the context of a Drupal update hook, it
+ * accepts the sandbox that is passed to the update hook as its first parameter.
+ * The results of the query, and the state of the iterations are stored in the
+ * sandbox.
+ *
+ * @param $sandbox
+ *   The sandbox passed to the drupal hook hook that this function is called from.
+ * @param $callback
+ *   The callback to apply to each entity returned from the $query. The callback is called with two arguments:
+ *   - The entity type of the entity in the second argument
+ *   - The loaded entity.
+ * @param NULL|string $node_type
+ *   The node type to iterate over, if NULL then all nodes will be iterated.
+ * @param int $nodes_per_pass
+ *   The number of nodes to load and process in each batch iteration.
  */
 function cm_tools_update_node_walk(&$sandbox, $callback, $node_type = NULL, $nodes_per_pass = 10) {
-  return cm_tools_update_entity_walk($sandbox, 'node', $callback, $node_type, $nodes_per_pass);
+  cm_tools_update_entity_walk($sandbox, 'node', $callback, $node_type, $nodes_per_pass);
 }
 
 
 /**
- * Helper for batch executing a callback across all nodes of a given type.
+ * Iterate over a set of entities returned by the given EntityFieldQuery.
+ *
+ * This function is designed to work in the context of a Drupal update hook, it
+ * accepts the sandbox that is passed to the update hook as its first parameter.
+ * The results of the query, and the state of the iterations are stored in the
+ * sandbox.
+ *
+ * @param $sandbox
+ *   The sandbox passed to the drupal hook hook that this function is called from.
+ * @param \EntityFieldQuery $query
+ *   The EntityFieldQuery to execute and iterate over the results of.
+ * @param int $entities_per_pass
+ *   The number of entities to load and process in each batch iteration.
+ *
+ * @return
+ *   An associative array of entity types mapped to entities to process in the
+ *   iteration.
  */
 function cm_tools_update_efq(&$sandbox, EntityFieldQuery $query, $entities_per_pass = 10) {
   $entities = array();
@@ -130,7 +194,24 @@ function cm_tools_update_efq(&$sandbox, EntityFieldQuery $query, $entities_per_p
 }
 
 /**
- * Helper for batch executing a callback across all entities of a given type.
+ * Iterate over all entities of a specific type, and optionally bundle.
+ *
+ * This function is designed to work in the context of a Drupal update hook, it
+ * accepts the sandbox that is passed to the update hook as its first parameter.
+ * The results of the query, and the state of the iterations are stored in the
+ * sandbox.
+ *
+ * @param $sandbox
+ *   The sandbox passed to the drupal hook hook that this function is called from.
+ * @param string $entity_type
+ *   The entity type to iterate over.
+ * @param NULL|string $bundle
+ *   The bundle to iterate over, if NULL then all bundles of the given entity type will be iterated.
+ * @param int $entities_per_pass
+ *   The number of entities to load and process in each batch iteration.
+ *
+ * @return
+ *   An array of entities to process in this iteration.
  */
 function cm_tools_update_entity(&$sandbox, $entity_type, $bundle = NULL, $entities_per_pass = 10) {
   $entities = array();
@@ -145,14 +226,57 @@ function cm_tools_update_entity(&$sandbox, $entity_type, $bundle = NULL, $entiti
 }
 
 /**
- * Helper for batch executing a callback across all nodes of a given type.
+ * Iterate over all nodes of a specific type.
+ *
+ * This function is designed to work in the context of a Drupal update hook, it
+ * accepts the sandbox that is passed to the update hook as its first parameter.
+ * The results of the query, and the state of the iterations are stored in the
+ * sandbox.
+ *
+ * @param $sandbox
+ *   The sandbox passed to the drupal hook hook that this function is called from.
+ * @param NULL|string $node_type
+ *   The node type to iterate over, if NULL then all nodes will be iterated.
+ * @param int $nodes_per_pass
+ *   The number of nodes to load and process in each batch iteration.
+ *
+ * @return
+ *   An array of nodes to process in this iteration.
  */
 function cm_tools_update_node(&$sandbox, $node_type = NULL, $nodes_per_pass = 10) {
   return cm_tools_update_entity($sandbox, 'node', $node_type, $nodes_per_pass);
 }
 
 /**
- * Helper for batch executing a callback across all nodes of a given type.
+ * Fill in missing default field values on entities.
+ *
+ * When adding a new field to an existing entity type, instances of those
+ * entities will be missing values for that field. Drupal does not ensure that
+ * when loaded they get the default, and they won't be able to be queried etc.
+ *
+ * Entities processed by this function will have the default value set
+ * according to the field configuration, so will match the defaults of newly
+ * created entities.
+ *
+ * This function is designed to work in the context of a Drupal update hook, it
+ * accepts the sandbox that is passed to the update hook as its first parameter.
+ * The results of the query, and the state of the iterations are stored in the
+ * sandbox.
+ *
+ * This function requires the Entity API module to be enabled.
+ *
+ * @param $sandbox
+ *   The sandbox passed to the drupal hook hook that this function is called from.
+ * @param string $entity_type
+ *   The entity type to iterate over.
+ * @param string $bundle
+ *   The bundle to iterate over.
+ * @param $fields
+ *   An associative array of fields to set the default value for. Keys are the field names, and values are either scalar (and then ignored) or an array of language codes to check and set the default values for.
+ * @param int $entities_per_pass
+ *   The number of entities to load and process in each batch iteration.
+ *
+ * @throws \DrupalUpdateException
  */
 function cm_tools_update_missing_default_field_values_insert(&$sandbox, $entity_type, $bundle, $fields, $entites_per_pass = 10) {
 
