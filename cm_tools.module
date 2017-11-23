@@ -332,7 +332,7 @@ function cm_tools_stable_usort(&$array, $cmp_function) {
   foreach ($array as &$item) {
     $item = array($index++, $item);
   }
-  $result = usort($array, function($a, $b) use($cmp_function) {
+  $result = usort($array, function($a, $b) use ($cmp_function) {
     $result = call_user_func($cmp_function, $a[1], $b[1]);
     return $result == 0 ? $a[0] - $b[0] : $result;
   });
@@ -359,7 +359,7 @@ function cm_tools_stable_uasort(&$array, $cmp_function) {
   foreach ($array as &$item) {
     $item = array($index++, $item);
   }
-  $result = uasort($array, function($a, $b) use($cmp_function) {
+  $result = uasort($array, function($a, $b) use ($cmp_function) {
     $result = call_user_func($cmp_function, $a[1], $b[1]);
     return $result == 0 ? $a[0] - $b[0] : $result;
   });
