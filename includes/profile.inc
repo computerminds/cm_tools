@@ -121,14 +121,12 @@ function cm_tools_update_efq(&$sandbox, EntityFieldQuery $query, $entities_per_p
   $entities = array();
 
   $callback = function($entity_type, $entity) use (&$entities) {
-    $entities[] = array($entity_type, $entity);
+    $entities[$entity_type][] = $entity;
   };
 
   cm_tools_update_efq_walk($sandbox, $query, $callback, $entities_per_pass);
 
-  foreach ($entities as $result) {
-    yield $result[0] => $result[1];
-  }
+  return $entities;
 }
 
 /**
@@ -143,18 +141,14 @@ function cm_tools_update_entity(&$sandbox, $entity_type, $bundle = NULL, $entiti
 
   cm_tools_update_entity_walk($sandbox, $entity_type, $callback, $bundle, $entities_per_pass);
 
-  foreach ($entities as $entity) {
-    yield $entity;
-  }
+  return $entities;
 }
 
 /**
  * Helper for batch executing a callback across all nodes of a given type.
  */
 function cm_tools_update_node(&$sandbox, $node_type = NULL, $nodes_per_pass = 10) {
-  foreach (cm_tools_update_entity($sandbox, 'node', $node_type, $nodes_per_pass) as $node) {
-    yield $node;
-  }
+  return cm_tools_update_entity($sandbox, 'node', $node_type, $nodes_per_pass);
 }
 
 /**
