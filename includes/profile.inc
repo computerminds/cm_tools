@@ -270,6 +270,44 @@ function cm_tools_update_node(&$sandbox, $node_type = NULL, $nodes_per_pass = 10
  * @param NULL|string $bundle
  *   The bundle to iterate over or NULL to iterate over all bundles for the
  *   given entity type.
+ * @param string|array $field_name
+ *   A field name or array of field names to fill in the default value of.
+ * @param int $entities_per_pass
+ *   The number of entities to load and process in each batch iteration.
+ */
+function cm_tools_update_missing_default_field_values_insert(&$sandbox, $entity_type, $bundle, $field_name, $entities_per_pass = 10) {
+
+  if (!is_array($field_name)) {
+    $field_name = array($field_name);
+  }
+  $field_names = array_fill_keys(array_values($field_name), TRUE);
+
+  cm_tools_update_missing_default_field_values_insert_with_languages($sandbox, $entity_type, $bundle, $field_names, $entities_per_pass);
+}
+
+/**
+ * Fill in missing default field values on entities, for specific languages.
+ *
+ * When adding a new field to an existing entity type, instances of those
+ * entities will be missing values for that field. Drupal does not ensure that
+ * when loaded they get the default, and they won't be able to be queried etc.
+ *
+ * Entities processed by this function will have the default value set
+ * according to the field configuration, so will match the defaults of newly
+ * created entities.
+ *
+ * This function is designed to work in the context of a Drupal update hook, it
+ * accepts the sandbox that is passed to the update hook as its first parameter.
+ * The results of the query, and the state of the iterations are stored in the
+ * sandbox.
+ *
+ * @param $sandbox
+ *   The sandbox passed to the drupal hook hook that this function is called from.
+ * @param string $entity_type
+ *   The entity type to iterate over.
+ * @param NULL|string $bundle
+ *   The bundle to iterate over or NULL to iterate over all bundles for the
+ *   given entity type.
  * @param $fields
  *   An associative array of fields to set the default value for. Keys are the
  *   field names, and values are either scalar (and then ignored) or an array
@@ -277,7 +315,7 @@ function cm_tools_update_node(&$sandbox, $node_type = NULL, $nodes_per_pass = 10
  * @param int $entities_per_pass
  *   The number of entities to load and process in each batch iteration.
  */
-function cm_tools_update_missing_default_field_values_insert(&$sandbox, $entity_type, $bundle, $fields, $entities_per_pass = 10) {
+function cm_tools_update_missing_default_field_values_insert_with_languages(&$sandbox, $entity_type, $bundle, $fields, $entities_per_pass = 10) {
 
   cm_tools_update_entity_walk($sandbox, $entity_type, function($entity) use ($entity_type, $fields) {
     $needs_save = FALSE;
