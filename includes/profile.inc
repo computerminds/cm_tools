@@ -51,34 +51,7 @@ function cm_tools_module_disable($modules) {
 /**
  * Helper for batch executing a callback across all nodes of a given type.
  */
-function cm_tools_update_node_batch($callback, &$sandbox, $node_type = NULL, $nodes_per_pass = 10) {
-  return cm_tools_update_entity_batch('node', $callback, $sandbox, $node_type, $nodes_per_pass);
-}
-
-/**
- * Helper for batch executing a callback across all entities of a given type.
- */
-function cm_tools_update_entity_batch($entity_type, $callback, &$sandbox, $bundle = NULL, $entities_per_pass = 10) {
-  $query = new EntityFieldQuery();
-  $query->entityCondition('entity_type', $entity_type);
-  // Skip access checks, as we really want to process all entities.
-  $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
-
-  if (isset($bundle)) {
-    $query->entityCondition('bundle', $bundle);
-  }
-
-  $wrapper_callback = function($entity_type, $entity) use ($callback) {
-    call_user_func($callback, $entity);
-  };
-
-  return cm_tools_update_efq_batch($query, $wrapper_callback, $sandbox, $entities_per_pass);
-}
-
-/**
- * Helper for batch executing a callback across all nodes of a given type.
- */
-function cm_tools_update_efq_batch(EntityFieldQuery $query, $callback, &$sandbox, $entities_per_pass = 10) {
+function cm_tools_update_efq_walk(&$sandbox, EntityFieldQuery $query, $callback, $entities_per_pass = 10) {
   // If this is the first pass through this update function then work out the work to be done here..
   if (!isset($sandbox['_cm_tools_update_efq_batch'])) {
     $sandbox['_cm_tools_update_efq_batch'] = array(
@@ -113,4 +86,107 @@ function cm_tools_update_efq_batch(EntityFieldQuery $query, $callback, &$sandbox
   return NULL;
 }
 
+/**
+ * Helper for batch executing a callback across all entities of a given type.
+ */
+function cm_tools_update_entity_walk(&$sandbox, $entity_type, $callback, $bundle = NULL, $entities_per_pass = 10) {
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', $entity_type);
+  // Skip access checks, as we really want to process all entities.
+  $query->addTag('DANGEROUS_ACCESS_CHECK_OPT_OUT');
 
+  if (isset($bundle)) {
+    $query->entityCondition('bundle', $bundle);
+  }
+
+  $wrapper_callback = function($entity_type, $entity) use ($callback) {
+    call_user_func($callback, $entity);
+  };
+
+  return cm_tools_update_efq_walk($sandbox, $query, $wrapper_callback, $entities_per_pass);
+}
+
+/**
+ * Helper for batch executing a callback across all nodes of a given type.
+ */
+function cm_tools_update_node_walk(&$sandbox, $callback, $node_type = NULL, $nodes_per_pass = 10) {
+  return cm_tools_update_entity_walk($sandbox, 'node', $callback, $node_type, $nodes_per_pass);
+}
+
+
+/**
+ * Helper for batch executing a callback across all nodes of a given type.
+ */
+function cm_tools_update_efq(&$sandbox, EntityFieldQuery $query, $entities_per_pass = 10) {
+  $entities = array();
+
+  $callback = function($entity_type, $entity) use (&$entities) {
+    $entities[] = array($entity_type, $entity);
+  };
+
+  cm_tools_update_efq_walk($sandbox, $query, $callback, $entities_per_pass);
+
+  foreach ($entities as $result) {
+    yield $result[0] => $result[1];
+  }
+}
+
+/**
+ * Helper for batch executing a callback across all entities of a given type.
+ */
+function cm_tools_update_entity(&$sandbox, $entity_type, $bundle = NULL, $entities_per_pass = 10) {
+  $entities = array();
+
+  $callback = function($entity) use (&$entities) {
+    $entities[] = $entity;
+  };
+
+  cm_tools_update_entity_walk($sandbox, $entity_type, $callback, $bundle, $entities_per_pass);
+
+  foreach ($entities as $entity) {
+    yield $entity;
+  }
+}
+
+/**
+ * Helper for batch executing a callback across all nodes of a given type.
+ */
+function cm_tools_update_node(&$sandbox, $node_type = NULL, $nodes_per_pass = 10) {
+  foreach (cm_tools_update_entity($sandbox, 'node', $node_type, $nodes_per_pass) as $node) {
+    yield $node;
+  }
+}
+
+/**
+ * Helper for batch executing a callback across all nodes of a given type.
+ */
+function cm_tools_update_missing_default_field_values_insert(&$sandbox, $entity_type, $bundle, $fields, $entites_per_pass = 10) {
+
+  if (!module_exists('entity')) {
+    throw new DrupalUpdateException('Entity API module is required by ' . __FUNCTION__);
+  }
+
+  cm_tools_update_entity_walk($sandbox, $entity_type, function($entity) use ($entity_type, $fields) {
+    foreach ($fields as $field_name => $languages) {
+      if (!is_array($languages)) {
+        $languages = array(NULL);
+      }
+      list(, , $bundle) = entity_extract_ids($entity_type, $entity);
+      $field = field_info_field($field_name);
+      if ($instance = field_info_instance($entity_type, $field_name, $bundle)) {
+        $needs_save = FALSE;
+        foreach ($languages as $language) {
+          $langcode = field_language($entity_type, $entity, $field_name, $language);
+          if (field_get_items($entity_type, $entity, $field_name, $langcode) === FALSE) {
+            $entity->{$field_name}[$langcode] = field_get_default_value($entity_type, $entity, $field, $instance, $langcode);
+            $needs_save = TRUE;
+          }
+        }
+        if ($needs_save) {
+          // @TODO: Determine if the field SQL storage module is in for this field, and do a direct insert.
+          entity_save($entity_type, $entity);
+        }
+      }
+    }
+  }, $bundle, $entites_per_pass);
+}
