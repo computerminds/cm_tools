@@ -608,3 +608,4 @@ function cm_tools_add_async_js($script = '', $id = '') {
     array('type' => 'inline', 'scope' => 'footer', 'weight' => 5)
   );
 }
+

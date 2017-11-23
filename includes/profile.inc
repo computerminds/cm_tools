@@ -263,36 +263,32 @@ function cm_tools_update_node(&$sandbox, $node_type = NULL, $nodes_per_pass = 10
  * The results of the query, and the state of the iterations are stored in the
  * sandbox.
  *
- * This function requires the Entity API module to be enabled.
- *
  * @param $sandbox
  *   The sandbox passed to the drupal hook hook that this function is called from.
  * @param string $entity_type
  *   The entity type to iterate over.
- * @param string $bundle
- *   The bundle to iterate over.
+ * @param NULL|string $bundle
+ *   The bundle to iterate over or NULL to iterate over all bundles for the
+ *   given entity type.
  * @param $fields
- *   An associative array of fields to set the default value for. Keys are the field names, and values are either scalar (and then ignored) or an array of language codes to check and set the default values for.
+ *   An associative array of fields to set the default value for. Keys are the
+ *   field names, and values are either scalar (and then ignored) or an array
+ *   of language codes to check and set the default values for.
  * @param int $entities_per_pass
  *   The number of entities to load and process in each batch iteration.
- *
- * @throws \DrupalUpdateException
  */
-function cm_tools_update_missing_default_field_values_insert(&$sandbox, $entity_type, $bundle, $fields, $entites_per_pass = 10) {
-
-  if (!module_exists('entity')) {
-    throw new DrupalUpdateException('Entity API module is required by ' . __FUNCTION__);
-  }
+function cm_tools_update_missing_default_field_values_insert(&$sandbox, $entity_type, $bundle, $fields, $entities_per_pass = 10) {
 
   cm_tools_update_entity_walk($sandbox, $entity_type, function($entity) use ($entity_type, $fields) {
+    $needs_save = FALSE;
+    list($id, , $bundle) = entity_extract_ids($entity_type, $entity);
     foreach ($fields as $field_name => $languages) {
       if (!is_array($languages)) {
         $languages = array(NULL);
       }
-      list(, , $bundle) = entity_extract_ids($entity_type, $entity);
       $field = field_info_field($field_name);
       if ($instance = field_info_instance($entity_type, $field_name, $bundle)) {
-        $needs_save = FALSE;
+
         foreach ($languages as $language) {
           $langcode = field_language($entity_type, $entity, $field_name, $language);
           if (field_get_items($entity_type, $entity, $field_name, $langcode) === FALSE) {
@@ -300,11 +296,18 @@ function cm_tools_update_missing_default_field_values_insert(&$sandbox, $entity_
             $needs_save = TRUE;
           }
         }
-        if ($needs_save) {
-          // @TODO: Determine if the field SQL storage module is in for this field, and do a direct insert.
-          entity_save($entity_type, $entity);
-        }
       }
     }
-  }, $bundle, $entites_per_pass);
+    if ($needs_save) {
+      // We don't try and save the full entity, instead we
+      // Remove all other fields from the entity, then they'll skip being saved.
+      $instances = field_info_instances($entity_type, $bundle);
+      foreach (array_diff_key($instances, $fields) as $field_name => $instance) {
+        unset($entity->$field_name);
+      }
+      field_attach_presave($entity_type, $entity);
+      field_attach_update($entity_type, $entity);
+      entity_get_controller($entity_type)->resetCache(array($id));
+    }
+  }, $bundle, $entities_per_pass);
 }
