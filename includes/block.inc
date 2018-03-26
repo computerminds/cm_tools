@@ -21,6 +21,7 @@ function cm_tools_block_position($module, $delta, $block = array(), $all_themes 
     'status' => (int) !empty($block['region']),
     'title' => '',
     'region' => '',
+    'visibility' => BLOCK_VISIBILITY_NOTLISTED,
     'pages' => '',
   );
   if (module_exists('i18n_block')) {
@@ -53,6 +54,7 @@ function cm_tools_block_position($module, $delta, $block = array(), $all_themes 
       'region' => TRUE,
       'theme'  => TRUE,
       'title'  => TRUE,
+      'visibility'  => TRUE,
       'pages'  => TRUE,
       'i18n_mode' => TRUE,
     )))
@@ -62,6 +64,7 @@ function cm_tools_block_position($module, $delta, $block = array(), $all_themes 
       'weight' => TRUE,
       'region' => TRUE,
       'title' => TRUE,
+      'visibility'  => TRUE,
       'pages'  => TRUE,
       'i18n_mode' => TRUE,
     )))
