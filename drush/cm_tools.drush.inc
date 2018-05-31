@@ -72,7 +72,7 @@ function cm_tools_drush_sql_sync_sanitize() {
     $queries[] = "UPDATE commerce_order SET mail = concat('order-', order_id, '@example.com'), hostname='192.0.2.1'";
   }
   if (in_array('commerce_order_revision', $all_tables, TRUE)) {
-    $queries[] = "UPDATE commerce_order_revision SET mail = concat('order-', order_id, '@example.com'), hostname='192.0.2.1'";
+    $queries[] = "UPDATE commerce_order_revision SET mail = concat('order-', order_id, '@example.com'), revision_hostname='192.0.2.1'";
   }
 
   if (!empty($queries)) {
@@ -99,30 +99,30 @@ function cm_tools_drush_sql_sync_sanitize() {
   $queries = array();
 
   $column_names = array(
-    'country' => '',
-    'administrative_area' => '',
-    'sub_administrative_area' => '',
-    'locality' => '',
-    'dependent_locality' => '',
-    'postal_code' => '',
-    'thoroughfare' => '',
-    'premise' => '',
-    'sub_premise' => '',
-    'organisation_name' => '',
-    'name_line' => '',
-    'first_name' => '',
-    'last_name' => '',
-    'data' => '',
+    'country' => "'GB'",
+    'administrative_area' => "CONCAT('A', LEFT(sha(%column), 7))",
+    'sub_administrative_area' => "CONCAT('B', LEFT(sha(%column), 7))",
+    'locality' => "CONCAT('C', LEFT(sha(%column), 7))",
+    'dependent_locality' => "CONCAT('D', LEFT(sha(%column), 7))",
+    'postal_code' => "CONCAT('E', LEFT(sha(%column), 6))",
+    'thoroughfare' => "CONCAT('R', LEFT(sha(%column), 9), 'Road')",
+    'premise' => "CONCAT('P', LEFT(sha(%column), 9))",
+    'sub_premise' => "CONCAT('S', LEFT(sha(%column), 7))",
+    'organisation_name' => "CONCAT('O', LEFT(sha(%column), 7))",
+    'name_line' => "CONCAT('N', LEFT(sha(%column), 7))",
+    'first_name' => "CONCAT('F', LEFT(sha(%column), 7))",
+    'last_name' => "CONCAT('L', LEFT(sha(%column), 7))",
+//    'data' => '',
   );
   foreach (_cm_tools_drush_get_fields_of_type('addressfield') as $field_name) {
     if (in_array('field_data_' . $field_name, $all_tables, TRUE)) {
       foreach ($column_names as $column_name => $replacement) {
-        $queries[] = "UPDATE field_data_${field_name} SET ${field_name}_$column_name = $replacement";
+        $queries[] = strtr("UPDATE field_data_${field_name} SET %column = $replacement WHERE %column IS NOT NULL AND %column <> ''", array('%column' => $field_name . '_' . $column_name));
       }
     }
     if (in_array('field_revision_' . $field_name, $all_tables, TRUE)) {
       foreach ($column_names as $column_name => $replacement) {
-        $queries[] = "UPDATE field_revision_${field_name} SET ${field_name}_$column_name = $replacement";
+        $queries[] = strtr("UPDATE field_revision_${field_name} SET %column = $replacement WHERE %column IS NOT NULL AND %column <> ''", array('%column' => $field_name . '_' . $column_name));
       }
     }
   }
@@ -131,25 +131,6 @@ function cm_tools_drush_sql_sync_sanitize() {
     $queries[] = '';
     drush_sql_register_post_sync_op('addressfield', dt('Sanitize Addressfield.'), implode(';', $queries));
   }
-
-
-  // Sort out the commerce addresses.
-  $query[] =  "UPDATE field_data_commerce_customer_address SET
-      commerce_customer_address_postal_code = concat('profile+', entity_id),
-      commerce_customer_address_thoroughfare = concat('profile+', entity_id, ' street'),
-      commerce_customer_address_premise = concat('profile+', entity_id, ' house'),
-      commerce_customer_address_organisation_name = concat('profile+', entity_id, ' organisation'),
-      commerce_customer_address_name_line = concat('profile+', entity_id, ' name'),
-      commerce_customer_address_first_name = concat('profile+', entity_id, ' name'),
-      commerce_customer_address_last_name = concat('profile+', entity_id, ' name')";
-  $query[] = "UPDATE field_revision_commerce_customer_address SET
-      commerce_customer_address_postal_code = concat('profile+', entity_id),
-      commerce_customer_address_thoroughfare = concat('profile+', entity_id, ' street'),
-      commerce_customer_address_premise = concat('profile+', entity_id, ' house'),
-      commerce_customer_address_organisation_name = concat('profile+', entity_id, ' organisation'),
-      commerce_customer_address_name_line = concat('profile+', entity_id, ' name'),
-      commerce_customer_address_first_name = concat('profile+', entity_id, ' name'),
-      commerce_customer_address_last_name = concat('profile+', entity_id, ' name')";
 }
 
 function _cm_tools_drush_get_fields_of_type($field_type) {
