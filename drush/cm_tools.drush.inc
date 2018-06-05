@@ -12,8 +12,18 @@ function cm_tools_drush_sql_sync_sanitize() {
   $queries = array();
 
   if (in_array('users', $all_tables, TRUE)) {
-    $queries[] = "UPDATE users SET name = CONCAT('user-' , uid) WHERE uid > 0";
-    $queries[] = "UPDATE users SET mail = CONCAT('user-' , uid, '@example.com'), init = CONCAT('user-' , uid, '@example.com') WHERE uid > 0";
+    // Find users with our permission: 'preserve during sanitization'
+    $users_to_keep = _cm_tools_drush_get_users_with_permission('preserve during sanitization');
+
+    if (empty($users_to_keep)) {
+      $queries[] = "UPDATE users SET name = CONCAT('user-' , uid) WHERE uid > 0";
+      $queries[] = "UPDATE users SET mail = CONCAT('user-' , uid, '@example.com'), init = CONCAT('user-' , uid, '@example.com') WHERE uid > 0";
+    }
+    else {
+      $expressions_to_keep = implode(',', $users_to_keep);
+      $queries[] = "UPDATE users SET name = CONCAT('user-' , uid) WHERE uid > 0 AND uid NOT IN ($expressions_to_keep)";
+      $queries[] = "UPDATE users SET mail = CONCAT('user-' , uid, '@example.com'), init = CONCAT('user-' , uid, '@example.com') WHERE uid > 0 AND uid NOT IN ($expressions_to_keep)";
+    }
   }
 
   if (!empty($queries)) {
@@ -105,7 +115,7 @@ function cm_tools_drush_sql_sync_sanitize() {
     'locality' => "CONCAT('C', LEFT(sha(%column), 7))",
     'dependent_locality' => "CONCAT('D', LEFT(sha(%column), 7))",
     'postal_code' => "CONCAT('E', LEFT(sha(%column), 6))",
-    'thoroughfare' => "CONCAT('R', LEFT(sha(%column), 9), 'Road')",
+    'thoroughfare' => "CONCAT('R', LEFT(sha(%column), 9), ' Road')",
     'premise' => "CONCAT('P', LEFT(sha(%column), 9))",
     'sub_premise' => "CONCAT('S', LEFT(sha(%column), 7))",
     'organisation_name' => "CONCAT('O', LEFT(sha(%column), 7))",
@@ -136,9 +146,46 @@ function cm_tools_drush_sql_sync_sanitize() {
 function _cm_tools_drush_get_fields_of_type($field_type) {
   $fields = array();
 
-  $return = drush_sql_get_class()->query("SELECT field_name FROM field_config where type = '$field_type';");
+  $return = drush_sql_get_class()->query("SELECT field_name FROM field_config WHERE type = '$field_type';");
   if ($return) {
     $fields = drush_shell_exec_output();
   }
   return $fields;
 }
+
+/**
+ * @param string $permission.
+ *   The permission to fetch roles for.
+ *
+ * @return int[]
+ *   An array of role IDs with the given permission
+ */
+function _cm_tools_drush_get_roles_with_permission($permission) {
+  $rids = array();
+
+  $return = drush_sql_get_class()->query("SELECT rid FROM role_permission WHERE permission = '${permission}';");
+  if ($return) {
+    $rids = drush_shell_exec_output();
+  }
+  return $rids;
+}
+
+function _cm_tools_drush_get_users_with_roles($roles) {
+  $users = array();
+
+  $in_expression = implode(',', $roles);
+
+  $return = drush_sql_get_class()->query("SELECT DISTINCT uid FROM users_roles WHERE rid IN ($in_expression);");
+  if ($return) {
+    $users = drush_shell_exec_output();
+  }
+  return $users;
+}
+
+function _cm_tools_drush_get_users_with_permission($permission) {
+  if ($roles = _cm_tools_drush_get_roles_with_permission($permission)) {
+    return _cm_tools_drush_get_users_with_roles($roles);
+  }
+  return array();
+}
+
