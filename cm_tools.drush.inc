@@ -196,7 +196,8 @@ function _cm_tools_drush_get_users_with_permission($permission) {
 /**
  * Copy and enhancement of the built in Drush user sanitization stuff.
  *
- * Here we allow for keeping some of the users unsanitized via a permission.
+ * We allow for keeping some of the users unsanitized via a permission and also
+ * sanitize usernames.
  */
 function _cm_tools_drush_sql_sync_sanitize_user_module($site) {
   $site_settings = drush_sitealias_get_record($site);
