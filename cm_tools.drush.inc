@@ -296,7 +296,6 @@ function _cm_tools_drush_sql_sync_sanitize_user_module($site) {
       $sanitize_query = "UPDATE users SET " . implode(', ', $user_table_updates) . " WHERE uid > 0 AND uid NOT IN ($expressions_to_keep);";
     }
     drush_sql_register_post_sync_op('user-email', dt('Reset !message in !table table', array('!message' => implode(' and ', $message_list), '!table' => 'users')), $sanitize_query);
-    drush_print_r($sanitize_query);
   }
 
   // Stop Drush from adding these queries and sanitizing all the users.
