@@ -9,6 +9,20 @@ function cm_tools_drush_sql_sync_sanitize($site) {
   // Fetch list of all tables.
   $all_tables = drush_sql_get_class()->listTables();
 
+  // All cache tables.
+  $queries = array();
+
+  foreach ($all_tables as $name) {
+    if ($name === 'cache' || strpos($name, 'cache_') === 0) {
+      $queries[] = "DELETE FROM $name";
+    }
+  }
+
+  if (!empty($queries)) {
+    $queries[] = '';
+    drush_sql_register_post_sync_op('cache', dt('Sanitize SQL cache tables.'), implode(';', $queries));
+  }
+
   // Redirect module.
   $queries = array();
 
