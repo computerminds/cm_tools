@@ -59,7 +59,7 @@ function cm_tools_permission() {
     'preserve during sanitization' => array(
       'title' => t('Preserve during SQL Sanitization'),
       'description' => t('Do not change users with this permission when sanitizing the database using Drush.'),
-    )
+    ),
   );
 }
 
