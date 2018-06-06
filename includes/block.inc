@@ -1,13 +1,17 @@
 <?php
 
 /**
+ * @file
+ */
+
+/**
  * Helper function to position a block.
  *
- * @param  $module
+ * @param $module
  *   The module that provides the block.
- * @param  $delta
+ * @param $delta
  *   The block delta.
- * @param  $block
+ * @param $block
  *   Options for the block.
  */
 function cm_tools_block_position($module, $delta, $block = array(), $all_themes = TRUE) {

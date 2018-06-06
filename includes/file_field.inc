@@ -1,6 +1,10 @@
 <?php
 
 /**
+ * @file
+ */
+
+/**
  * Helper function for creating a new file value on a node.
  * Can only handle files that are already on the server.
  *

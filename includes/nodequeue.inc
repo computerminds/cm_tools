@@ -1,6 +1,10 @@
 <?php
 
 /**
+ * @file
+ */
+
+/**
  * Create a new nodequeue.
  *
  * @code
@@ -21,7 +25,7 @@
  * @param $options
  *   An array of options to use when creating the nodequeue.
  *
- * @return integer
+ * @return int
  *   The nodequeue's qid.
  */
 function cm_tools_nodequeue_create($name, $title, $options = array()) {
@@ -44,8 +48,7 @@ function cm_tools_nodequeue_create($name, $title, $options = array()) {
   $options += $defaults;
   $options['name'] = $name;
   $options['title'] = $title;
-  
-  
+
   $nodequeue_schema = drupal_get_schema('nodequeue_queue');
 
   $qry = db_insert('nodequeue_queue', array('return' => Database::RETURN_INSERT_ID))
@@ -56,20 +59,20 @@ function cm_tools_nodequeue_create($name, $title, $options = array()) {
     views_invalidate_cache();
   }
 
-  // add each role to the nodequeue
+  // Add each role to the nodequeue.
   foreach ($options['roles'] as $rid) {
     cm_tools_nodequeue_add_role($qid, $rid);
   }
 
-  // add each content type to the nodequeue
+  // Add each content type to the nodequeue.
   foreach ($options['types'] as $type) {
     cm_tools_nodequeue_add_type($qid, $type);
   }
 
-  // add the subqueue, just pass in the $ref=$qid for now
+  // Add the subqueue, just pass in the $ref=$qid for now.
   cm_tools_nodequeue_add_sub($qid, $qid, $options['title']);
 
-  // all done
+  // All done.
   return $qid;
 }
 
@@ -116,6 +119,7 @@ function cm_tools_nodequeue_add_type($qid, $type) {
  *   The ?
  * @param $title
  *   The
+ *
  * @return
  *   The corresponding sqid (int).
  */

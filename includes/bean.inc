@@ -38,14 +38,15 @@
  *   Pass TRUE to reset several static caches that allow you to create a new
  *   bean with a bean type that you've also added in this page request.
  *
- *  @return
- *    A new bean entity, you should make whatever additions you want, fields etc. and then call the save method on this object to save your new bean:
- *    @code
+ * @return
+ *   A new bean entity, you should make whatever additions you want, fields etc. and then call the save method on this object to save your new bean:
+ *
+ * @code
  *    $bean->save(TRUE);
- *    @endcode
+ * @endcode
  */
 function cm_tools_bean_create($bean_type, $label, $delta, $title = '', $data = array(), $reset = FALSE) {
-  
+
   // Reset some static caches so we pick up newly added bean types correctly.
   if ($reset) {
     drupal_static_reset('ctools_plugins');
@@ -57,13 +58,13 @@ function cm_tools_bean_create($bean_type, $label, $delta, $title = '', $data = a
     drupal_static_reset('bean_load_plugin_class');
     drupal_static_reset('bean_fetch_plugin_info');
   }
-  
+
   $bean = bean_create(array('type' => $bean_type));
   $bean->label = $label;
   $bean->title = $title;
   $bean->delta = $delta;
   $bean->data = $data;
-  
+
   return $bean;
-  
+
 }
