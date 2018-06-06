@@ -1,6 +1,10 @@
 <?php
 
 /**
+ * @file
+ */
+
+/**
  * Helper function which returns all views plugins we define.
  */
 function _cm_tools_views_plugins() {

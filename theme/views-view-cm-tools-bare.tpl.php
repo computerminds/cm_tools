@@ -1,6 +1,6 @@
 <?php
 /**
- * @file views-view-cm-tools-bare.tpl.php
+ * @file Views-view-cm-tools-bare.tpl.php
  * Default simple view template to display a list of rows but without the
  * wrapping markup.
  *

@@ -6,7 +6,7 @@
 
 /**
  * Enables modules and throws an exception if that can't be done.
- * 
+ *
  * @param $modules
  *   A string containing a module name or an array of module names.
  */
@@ -14,9 +14,9 @@ function cm_tools_module_enable($modules) {
   if (is_string($modules)) {
     $modules = array($modules);
   }
-  
+
   $result = module_enable($modules);
-  
+
   if (empty($result)) {
     throw new DrupalUpdateException(implode(', ', $modules) . ' or dependencies could not be enabled');
   }
@@ -116,7 +116,7 @@ function cm_tools_update_efq_walk(&$sandbox, EntityFieldQuery $query, $callback,
  *   The callback to apply to each entity returned from the $query. The callback is called with two arguments:
  *   - The entity type of the entity in the second argument
  *   - The loaded entity.
- * @param NULL|string $bundle
+ * @param null|string $bundle
  *   The bundle to iterate over, if NULL then all bundles of the given entity type will be iterated.
  * @param int $entities_per_pass
  *   The number of entities to load and process in each batch iteration.
@@ -131,7 +131,7 @@ function cm_tools_update_entity_walk(&$sandbox, $entity_type, $callback, $bundle
     $query->entityCondition('bundle', $bundle);
   }
 
-  $wrapper_callback = function($entity_type, $entity) use ($callback) {
+  $wrapper_callback = function ($entity_type, $entity) use ($callback) {
     call_user_func($callback, $entity);
   };
 
@@ -163,7 +163,7 @@ function cm_tools_update_entity_walk(&$sandbox, $entity_type, $callback, $bundle
  *   The callback to apply to each entity returned from the $query. The callback is called with two arguments:
  *   - The entity type of the entity in the second argument
  *   - The loaded entity.
- * @param NULL|string $node_type
+ * @param null|string $node_type
  *   The node type to iterate over, if NULL then all nodes will be iterated.
  * @param int $nodes_per_pass
  *   The number of nodes to load and process in each batch iteration.
@@ -171,7 +171,6 @@ function cm_tools_update_entity_walk(&$sandbox, $entity_type, $callback, $bundle
 function cm_tools_update_node_walk(&$sandbox, $callback, $node_type = NULL, $nodes_per_pass = 10) {
   cm_tools_update_entity_walk($sandbox, 'node', $callback, $node_type, $nodes_per_pass);
 }
-
 
 /**
  * Iterate over a set of entities returned by the given EntityFieldQuery.
@@ -195,7 +194,7 @@ function cm_tools_update_node_walk(&$sandbox, $callback, $node_type = NULL, $nod
 function cm_tools_update_efq(&$sandbox, EntityFieldQuery $query, $entities_per_pass = 10) {
   $entities = array();
 
-  $callback = function($entity_type, $entity) use (&$entities) {
+  $callback = function ($entity_type, $entity) use (&$entities) {
     $entities[$entity_type][] = $entity;
   };
 
@@ -216,7 +215,7 @@ function cm_tools_update_efq(&$sandbox, EntityFieldQuery $query, $entities_per_p
  *   The sandbox passed to the drupal hook hook that this function is called from.
  * @param string $entity_type
  *   The entity type to iterate over.
- * @param NULL|string $bundle
+ * @param null|string $bundle
  *   The bundle to iterate over, if NULL then all bundles of the given entity type will be iterated.
  * @param int $entities_per_pass
  *   The number of entities to load and process in each batch iteration.
@@ -227,7 +226,7 @@ function cm_tools_update_efq(&$sandbox, EntityFieldQuery $query, $entities_per_p
 function cm_tools_update_entity(&$sandbox, $entity_type, $bundle = NULL, $entities_per_pass = 10) {
   $entities = array();
 
-  $callback = function($entity) use (&$entities) {
+  $callback = function ($entity) use (&$entities) {
     $entities[] = $entity;
   };
 
@@ -257,7 +256,7 @@ function cm_tools_update_entity(&$sandbox, $entity_type, $bundle = NULL, $entiti
  *
  * @param $sandbox
  *   The sandbox passed to the drupal hook hook that this function is called from.
- * @param NULL|string $node_type
+ * @param null|string $node_type
  *   The node type to iterate over, if NULL then all nodes will be iterated.
  * @param int $nodes_per_pass
  *   The number of nodes to load and process in each batch iteration.
@@ -298,7 +297,7 @@ function cm_tools_update_node(&$sandbox, $node_type = NULL, $nodes_per_pass = 10
  *   The sandbox passed to the drupal hook hook that this function is called from.
  * @param string $entity_type
  *   The entity type to iterate over.
- * @param NULL|string $bundle
+ * @param null|string $bundle
  *   The bundle to iterate over or NULL to iterate over all bundles for the
  *   given entity type.
  * @param string|array $field_name
@@ -336,7 +335,7 @@ function cm_tools_update_missing_default_field_values_insert(&$sandbox, $entity_
  *   The sandbox passed to the drupal hook hook that this function is called from.
  * @param string $entity_type
  *   The entity type to iterate over.
- * @param NULL|string $bundle
+ * @param null|string $bundle
  *   The bundle to iterate over or NULL to iterate over all bundles for the
  *   given entity type.
  * @param $fields
@@ -348,7 +347,7 @@ function cm_tools_update_missing_default_field_values_insert(&$sandbox, $entity_
  */
 function cm_tools_update_missing_default_field_values_insert_with_languages(&$sandbox, $entity_type, $bundle, $fields, $entities_per_pass = 10) {
 
-  cm_tools_update_entity_walk($sandbox, $entity_type, function($entity) use ($entity_type, $fields) {
+  cm_tools_update_entity_walk($sandbox, $entity_type, function ($entity) use ($entity_type, $fields) {
     $needs_save = FALSE;
     list($id, , $bundle) = entity_extract_ids($entity_type, $entity);
     foreach ($fields as $field_name => $languages) {

@@ -32,6 +32,7 @@ function cm_tools_element_info() {
  * and if so, render them into strings.
  *
  * @param $elements
+ *
  * @return mixed
  */
 function cm_tools_item_list_pre_render($elements) {

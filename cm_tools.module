@@ -225,7 +225,7 @@ function cm_tools_array_insert_at_key(&$haystack, $insert_key, $insertions, $ins
  *   The array. This is modified by reference.
  * @param $offset
  *   Offset after which to insert $insertion.
- * @param Array $insertions
+ * @param array $insertions
  *   Array of new values to insert into the array. If $preserve_keys is TRUE and
  *   an element already exists in the array with the same key as one you are
  *   inserting, the old one(s) will removed. If this parameter is not an array
@@ -309,7 +309,7 @@ function cm_tools_array_remove_values(&$haystack, $values) {
 
   foreach ($values as $value_to_remove) {
     $key = array_search($value_to_remove, $haystack);
-    if ($key !== false) {
+    if ($key !== FALSE) {
       unset($haystack[$key]);
     }
   }
@@ -324,7 +324,8 @@ function cm_tools_array_remove_values(&$haystack, $values) {
  * greater than zero if the first argument is considered to be
  * respectively less than, equal to, or greater than the second.
  *
- * @param array $array The input array.
+ * @param array $array
+ *   The input array.
  * @param callable $cmp_function
  */
 function cm_tools_stable_usort(&$array, $cmp_function) {
@@ -332,7 +333,7 @@ function cm_tools_stable_usort(&$array, $cmp_function) {
   foreach ($array as &$item) {
     $item = array($index++, $item);
   }
-  $result = usort($array, function($a, $b) use ($cmp_function) {
+  $result = usort($array, function ($a, $b) use ($cmp_function) {
     $result = call_user_func($cmp_function, $a[1], $b[1]);
     return $result == 0 ? $a[0] - $b[0] : $result;
   });
@@ -351,7 +352,8 @@ function cm_tools_stable_usort(&$array, $cmp_function) {
  * greater than zero if the first argument is considered to be
  * respectively less than, equal to, or greater than the second.
  *
- * @param array $array The input array.
+ * @param array $array
+ *   The input array.
  * @param callable $cmp_function
  */
 function cm_tools_stable_uasort(&$array, $cmp_function) {
@@ -359,7 +361,7 @@ function cm_tools_stable_uasort(&$array, $cmp_function) {
   foreach ($array as &$item) {
     $item = array($index++, $item);
   }
-  $result = uasort($array, function($a, $b) use ($cmp_function) {
+  $result = uasort($array, function ($a, $b) use ($cmp_function) {
     $result = call_user_func($cmp_function, $a[1], $b[1]);
     return $result == 0 ? $a[0] - $b[0] : $result;
   });
@@ -381,7 +383,6 @@ function cm_tools_theme($existing, $type, $theme, $path) {
   );
   return $items;
 }
-
 
 /**
  * Implements hook_preprocess_entity().
@@ -422,7 +423,7 @@ function cm_tools_preprocess_entity(&$vars, $hook, $suggestion_prefix = 'entity_
 
     $entity_type = isset($vars['entity_type_theme_name']) ? $vars['entity_type_theme_name'] : $entity_type;
 
-    // Ensure theme_hook_suggestions for id, bundle and view_mode
+    // Ensure theme_hook_suggestions for id, bundle and view_mode.
     $suggestion = "{$entity_type}__{$bundle}";
     if (!in_array($suggestion, $vars['theme_hook_suggestions']) && !in_array($suggestion_prefix . $suggestion, $vars['theme_hook_suggestions'])) {
       array_unshift($vars['theme_hook_suggestions'], $suggestion_prefix . $suggestion);
@@ -448,7 +449,7 @@ function cm_tools_preprocess_entity(&$vars, $hook, $suggestion_prefix = 'entity_
   // Add a class indicating view mode.
   $classes = array();
   $classes[] = drupal_clean_css_identifier("{$entity_type}-{$view_mode}");
-  // Also add entity-bundle-view_mode combo
+  // Also add entity-bundle-view_mode combo.
   $classes[] = drupal_clean_css_identifier("{$entity_type}-{$bundle}-{$view_mode}");
   if (isset($vars['classes_array'])) {
     $vars['classes_array'] = array_merge($vars['classes_array'], $classes);
@@ -558,10 +559,10 @@ function cm_tools_preprocess_page(&$vars) {
  *
  *   $render_array['#attached']['cm_tools_add_async_js'][] = array(<url>, <id>);
  *
- * @param  $script
+ * @param $script
  *   The URL of the script to load (schemeless/protocol relative are
  *   best, for avoiding mixed http/https content warnings).
- * @param  $id
+ * @param $id
  *   The id to give the script tag (to prevent multiple loads).
  */
 function cm_tools_add_async_js($script = '', $id = '') {
@@ -569,4 +570,3 @@ function cm_tools_add_async_js($script = '', $id = '') {
     array('type' => 'inline', 'scope' => 'footer', 'weight' => 5)
   );
 }
-
