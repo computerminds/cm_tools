@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Helper functions relating to render arrays and rendering.
@@ -11,7 +12,7 @@
  */
 function cm_tools_html_wrapper($tag = 'div', $render, $classes = array(), $id = '') {
   $wrapped = array(
-    $render,
+    0 => $render,
     '#theme_wrappers' => array('cm_tools_html_wrapper'),
     '#tag' => $tag,
     '#attributes' => array(),
