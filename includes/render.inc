@@ -10,7 +10,7 @@
  *
  * @see theme_cm_tools_html_wrapper
  */
-function cm_tools_html_wrapper($tag = 'div', $render, $classes = array(), $id = '') {
+function cm_tools_html_wrapper($tag, $render, $classes = array(), $id = '') {
   $wrapped = array(
     0 => $render,
     '#theme_wrappers' => array('cm_tools_html_wrapper'),
