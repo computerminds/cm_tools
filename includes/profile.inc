@@ -344,7 +344,8 @@ function cm_tools_update_missing_default_field_values_insert(array &$sandbox, $e
  * sandbox.
  *
  * @param array $sandbox
- *   The sandbox passed to the drupal hook hook that this function is called from.
+ *   The sandbox passed to the drupal hook hook that this function is called
+ *   from.
  * @param string $entity_type
  *   The entity type to iterate over.
  * @param null|string $bundle
