@@ -40,12 +40,9 @@
  *
  * @return Bean
  *   A new bean entity.
- *   You should make whatever additions you want, fields etc. and then call the
- *   save method on this object to save your new bean:
  *
- * @code
- *    $bean->save(TRUE);
- * @endcode
+ *   You should make whatever additions you want, fields etc. and then call the
+ *   save method on this object to save your new bean.
  */
 function cm_tools_bean_create($bean_type, $label, $delta, $title = '', array $data = array(), $reset = FALSE) {
 
