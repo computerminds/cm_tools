@@ -2,6 +2,7 @@
 
 /**
  * @file
+ * Helper functions for Nodequeue.
  */
 
 /**
@@ -18,17 +19,17 @@
  * cm_tools_nodequeue_create('blogs', 'Blogs', $options);
  * @endcode
  *
- * @param $name
+ * @param string $name
  *   The machine name of the nodequeue.
- * @param $title
+ * @param string $title
  *   The human-readable title of the nodequeue.
- * @param $options
+ * @param array $options
  *   An array of options to use when creating the nodequeue.
  *
  * @return int
  *   The nodequeue's qid.
  */
-function cm_tools_nodequeue_create($name, $title, $options = array()) {
+function cm_tools_nodequeue_create($name, $title, array $options = array()) {
   $defaults = array(
     'roles' => array(),
     'types' => array(),
@@ -79,9 +80,9 @@ function cm_tools_nodequeue_create($name, $title, $options = array()) {
 /**
  * Add a role to a nodequeue.
  *
- * @param $qid
+ * @param int $qid
  *   The nodequeue's qid.
- * @param $rid
+ * @param int $rid
  *   The user role's rid.
  */
 function cm_tools_nodequeue_add_role($qid, $rid) {
@@ -96,9 +97,9 @@ function cm_tools_nodequeue_add_role($qid, $rid) {
 /**
  * Add a role to a nodequeue.
  *
- * @param $qid
+ * @param int $qid
  *   The nodequeue's qid.
- * @param $type
+ * @param string $type
  *   The content type to add.
  */
 function cm_tools_nodequeue_add_type($qid, $type) {
@@ -113,15 +114,15 @@ function cm_tools_nodequeue_add_type($qid, $type) {
 /**
  * Add a subqueue to a nodequeue.
  *
- * @param $qid
+ * @param int $qid
  *   The nodequeue's qid.
- * @param $ref
- *   The ?
- * @param $title
- *   The
+ * @param mixed $ref
+ *   The reference.
+ * @param string $title
+ *   The title.
  *
- * @return
- *   The corresponding sqid (int).
+ * @return int
+ *   The corresponding sqid.
  */
 function cm_tools_nodequeue_add_sub($qid, $ref, $title) {
   $qry = db_insert('nodequeue_subqueue', array('return' => Database::RETURN_INSERT_ID))

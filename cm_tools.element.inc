@@ -1,7 +1,8 @@
 <?php
 
 /**
- * @file Render elements provided by CM Tools module.
+ * @file
+ * Render elements provided by CM Tools module.
  */
 
 /**
@@ -31,9 +32,11 @@ function cm_tools_element_info() {
  * We detect whether render arrays being passed under '#items'
  * and if so, render them into strings.
  *
- * @param $elements
+ * @param mixed $elements
+ *   The elements to pre-render.
  *
  * @return mixed
+ *   The pre-rendered elements.
  */
 function cm_tools_item_list_pre_render($elements) {
 

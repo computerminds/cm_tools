@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * Theme related functions for the Computerminds Tools module.

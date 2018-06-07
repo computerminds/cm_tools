@@ -2,6 +2,7 @@
 
 /**
  * @file
+ * Views hooks for the ComputerMinds Tools module.
  */
 
 /**

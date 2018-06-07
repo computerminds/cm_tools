@@ -2,19 +2,20 @@
 
 /**
  * @file
+ * Helper functions for Blocks.
  */
 
 /**
  * Helper function to position a block.
  *
- * @param $module
+ * @param string $module
  *   The module that provides the block.
- * @param $delta
+ * @param string $delta
  *   The block delta.
- * @param $block
+ * @param array $block
  *   Options for the block.
  */
-function cm_tools_block_position($module, $delta, $block = array(), $all_themes = TRUE) {
+function cm_tools_block_position($module, $delta, array $block = array(), $all_themes = TRUE) {
   $block['module'] = $module;
   $block['delta'] = $delta;
   $block += array(
@@ -78,9 +79,9 @@ function cm_tools_block_position($module, $delta, $block = array(), $all_themes 
 /**
  * Retrieve the render array representation for the given block.
  *
- * @param $module
+ * @param string $module
  *   The module that provides the block.
- * @param $delta
+ * @param string $delta
  *   The block delta.
  *
  * @return array|null
