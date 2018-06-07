@@ -2,10 +2,11 @@
 
 /**
  * @file
+ * Drush SQL Santization routines for many common modules.
  */
 
 /**
- * Implementation of hook_drush_sql_sync_sanitize().
+ * Implements hook_drush_sql_sync_sanitize().
  */
 function cm_tools_drush_sql_sync_sanitize($site) {
   _cm_tools_drush_sql_sync_sanitize_user_module($site);
@@ -139,9 +140,11 @@ function cm_tools_drush_sql_sync_sanitize($site) {
 /**
  * Get field names of a specific field type.
  *
- * @param $field_type
+ * @param string $field_type
+ *   The field type to search for.
  *
  * @return string[]
+ *   An array of field names.
  */
 function _cm_tools_drush_get_fields_of_type($field_type) {
   $fields = array();
@@ -175,13 +178,13 @@ function _cm_tools_drush_get_roles_with_permission($permission) {
 /**
  * Get users with specified roles.
  *
- * @param $roles
+ * @param int[] $roles
  *   The roles to return users for.
  *
  * @return int[]
  *   An array of user IDs with the specified roles.
  */
-function _cm_tools_drush_get_users_with_roles($roles) {
+function _cm_tools_drush_get_users_with_roles(array $roles) {
   $users = array();
 
   $in_expression = implode(',', $roles);
@@ -196,8 +199,8 @@ function _cm_tools_drush_get_users_with_roles($roles) {
 /**
  * Get users with specified permissions.
  *
- * @param $permission
- *   The roles to return users for.
+ * @param string $permission
+ *   The permission to return users for.
  *
  * @return int[]
  *   An array of users with the specified permissions.
@@ -239,15 +242,27 @@ function _cm_tools_drush_sql_sync_sanitize_user_module($site) {
       // We need a different sanitization query for Postgres and Mysql.
       $db_driver = $databases['default']['default']['driver'];
       if ($db_driver == 'pgsql') {
-        $email_map = array('%uid' => "' || uid || '", '%mail' => "' || replace(mail, '@', '_') || '", '%name' => "' || replace(name, ' ', '_') || '");
+        $email_map = [
+          '%uid' => "' || uid || '",
+          '%mail' => "' || replace(mail, '@', '_') || '",
+          '%name' => "' || replace(name, ' ', '_') || '",
+        ];
         $newmail = "'" . str_replace(array_keys($email_map), array_values($email_map), $newemail) . "'";
       }
       elseif ($db_driver == 'mssql') {
-        $email_map = array('%uid' => "' + uid + '", '%mail' => "' + replace(mail, '@', '_') + '", '%name' => "' + replace(name, ' ', '_') + '");
+        $email_map = [
+          '%uid' => "' + uid + '",
+          '%mail' => "' + replace(mail, '@', '_') + '",
+          '%name' => "' + replace(name, ' ', '_') + '",
+        ];
         $newmail = "'" . str_replace(array_keys($email_map), array_values($email_map), $newemail) . "'";
       }
       else {
-        $email_map = array('%uid' => "', uid, '", '%mail' => "', replace(mail, '@', '_'), '", '%name' => "', replace(name, ' ', '_'), '");
+        $email_map = [
+          '%uid' => "', uid, '",
+          '%mail' => "', replace(mail, '@', '_'), '",
+          '%name' => "', replace(name, ' ', '_'), '",
+        ];
         $newmail = "concat('" . str_replace(array_keys($email_map), array_values($email_map), $newemail) . "')";
       }
       $user_table_updates[] = "mail = $newmail, init = $newmail";
@@ -265,16 +280,28 @@ function _cm_tools_drush_sql_sync_sanitize_user_module($site) {
       // We need a different sanitization query for Postgres and Mysql.
       $db_driver = $databases['default']['default']['driver'];
       if ($db_driver == 'pgsql') {
-        $email_map = array('%uid' => "' || uid || '", '%mail' => "' || replace(mail, '@', '_') || '", '%name' => "' || replace(name, ' ', '_') || '");
-        $newuser = "'" . str_replace(array_keys($email_map), array_values($email_map), $newusername) . "'";
+        $username_map = array(
+          '%uid' => "' || uid || '",
+          '%mail' => "' || replace(mail, '@', '_') || '",
+          '%name' => "' || replace(name, ' ', '_') || '",
+        );
+        $newuser = "'" . str_replace(array_keys($username_map), array_values($username_map), $newusername) . "'";
       }
       elseif ($db_driver == 'mssql') {
-        $email_map = array('%uid' => "' + uid + '", '%mail' => "' + replace(mail, '@', '_') + '", '%name' => "' + replace(name, ' ', '_') + '");
-        $newuser = "'" . str_replace(array_keys($email_map), array_values($email_map), $newusername) . "'";
+        $username_map = array(
+          '%uid' => "' + uid + '",
+          '%mail' => "' + replace(mail, '@', '_') + '",
+          '%name' => "' + replace(name, ' ', '_') + '",
+        );
+        $newuser = "'" . str_replace(array_keys($username_map), array_values($username_map), $newusername) . "'";
       }
       else {
-        $email_map = array('%uid' => "', uid, '", '%mail' => "', replace(mail, '@', '_'), '", '%name' => "', replace(name, ' ', '_'), '");
-        $newuser = "concat('" . str_replace(array_keys($email_map), array_values($email_map), $newusername) . "')";
+        $username_map = array(
+          '%uid' => "', uid, '",
+          '%mail' => "', replace(mail, '@', '_'), '",
+          '%name' => "', replace(name, ' ', '_'), '",
+        );
+        $newuser = "concat('" . str_replace(array_keys($username_map), array_values($username_map), $newusername) . "')";
       }
       $user_table_updates[] = "name = $newuser";
     }
@@ -295,7 +322,10 @@ function _cm_tools_drush_sql_sync_sanitize_user_module($site) {
       $expressions_to_keep = implode(',', $users_to_keep);
       $sanitize_query = "UPDATE users SET " . implode(', ', $user_table_updates) . " WHERE uid > 0 AND uid NOT IN ($expressions_to_keep);";
     }
-    drush_sql_register_post_sync_op('user-email', dt('Reset !message in !table table', array('!message' => implode(' and ', $message_list), '!table' => 'users')), $sanitize_query);
+    drush_sql_register_post_sync_op('user-email', dt('Reset !message in !table table', array(
+      '!message' => implode(' and ', $message_list),
+      '!table' => 'users',
+    )), $sanitize_query);
   }
 
   // Stop Drush from adding these queries and sanitizing all the users.
