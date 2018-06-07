@@ -1,6 +1,6 @@
 <?php
 
 /**
- * @file Theme / processing functions relating to views handlers/plugins we
- * define.
+ * @file
+ * Theme / processing functions relating to views handlers/plugins we define.
  */
