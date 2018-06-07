@@ -14,94 +14,89 @@ function cm_tools_drush_sql_sync_sanitize($site) {
   // Fetch list of all tables.
   $all_tables = drush_sql_get_class()->listTables();
 
-  // All cache tables.
-  $queries = array();
+  // All cache tables (from the system module).
+  $system_queries = array();
 
   foreach ($all_tables as $name) {
     if ($name === 'cache' || strpos($name, 'cache_') === 0) {
-      $queries[] = "DELETE FROM $name";
+      $system_queries[] = "DELETE FROM $name";
     }
   }
 
-  if (!empty($queries)) {
-    $queries[] = '';
-    drush_sql_register_post_sync_op('cache', dt('Sanitize SQL cache tables.'), implode(';', $queries));
+  if (!empty($system_queries)) {
+    drush_sql_register_post_sync_op('cache', dt('Sanitize SQL cache tables.'), implode(';', $system_queries) . ';');
   }
 
   // Redirect module.
-  $queries = array();
+  $redirect_queries = array();
 
   if (in_array('redirect', $all_tables, TRUE)) {
     // Redirects may contain personal data like usernames etc.
-    $queries[] = "DELETE FROM redirect WHERE redirect LIKE 'user/%'";
+    $redirect_queries[] = "DELETE FROM redirect WHERE redirect LIKE 'user/%'";
   }
 
-  if (!empty($queries)) {
-    $queries[] = '';
-    drush_sql_register_post_sync_op('redirect', dt('Sanitize redirect to user paths.'), implode(';', $queries));
+  if (!empty($redirect_queries)) {
+    drush_sql_register_post_sync_op('redirect', dt('Sanitize redirect to user paths.'), implode(';', $redirect_queries) . ';');
   }
 
   // Path module.
-  $queries = array();
+  $path_queries = array();
 
   if (in_array('url_alias', $all_tables, TRUE)) {
     // URL aliases may contain personal data like usernames etc.
-    $queries[] = "DELETE FROM url_alias WHERE source LIKE 'user/%'";
+    $path_queries[] = "DELETE FROM url_alias WHERE source LIKE 'user/%'";
   }
 
-  if (!empty($queries)) {
-    $queries[] = '';
-    drush_sql_register_post_sync_op('path', dt('Sanitize URL aliases.'), implode(';', $queries));
+  if (!empty($path_queries)) {
+    drush_sql_register_post_sync_op('path', dt('Sanitize URL aliases.'), implode(';', $path_queries) . ';');
   }
 
   // Comment module.
-  $queries = array();
+  $comment_queries = array();
 
   if (in_array('comment', $all_tables, TRUE)) {
-    $queries[] = "UPDATE comment SET hostname = '192.0.2.1'";
-    $queries[] = "UPDATE comment SET name = sha(name) WHERE name <> ''";
-    $queries[] = "UPDATE comment SET mail = CONCAT(sha(mail), '@example.com') WHERE mail <> ''";
-    $queries[] = "UPDATE comment SET homepage = CONCAT(sha(homepage), '.example.com') WHERE homepage <> ''";
+    $comment_queries[] = "UPDATE comment SET hostname = '192.0.2.1'";
+    $comment_queries[] = "UPDATE comment SET name = sha(name) WHERE name <> ''";
+    $comment_queries[] = "UPDATE comment SET mail = CONCAT(sha(mail), '@example.com') WHERE mail <> ''";
+    $comment_queries[] = "UPDATE comment SET homepage = CONCAT(sha(homepage), '.example.com') WHERE homepage <> ''";
   }
 
-  if (!empty($queries)) {
-    $queries[] = '';
-    drush_sql_register_post_sync_op('comment', dt('Sanitize comment information.'), implode(';', $queries));
+  if (!empty($comment_queries)) {
+    drush_sql_register_post_sync_op('comment', dt('Sanitize comment information.'), implode(';', $comment_queries) . ';');
   }
 
   // Commerce order module.
-  $queries = array();
+  $commerce_order_queries = array();
 
   if (in_array('commerce_order', $all_tables, TRUE)) {
-    $queries[] = "UPDATE commerce_order SET mail = concat('order-', order_id, '@example.com'), hostname='192.0.2.1'";
+    $commerce_order_queries[] = "UPDATE commerce_order SET mail = concat('order-', order_id, '@example.com'), hostname='192.0.2.1'";
   }
   if (in_array('commerce_order_revision', $all_tables, TRUE)) {
-    $queries[] = "UPDATE commerce_order_revision SET mail = concat('order-', order_id, '@example.com'), revision_hostname='192.0.2.1'";
+    $commerce_order_queries[] = "UPDATE commerce_order_revision SET mail = concat('order-', order_id, '@example.com'), revision_hostname='192.0.2.1'";
   }
 
-  if (!empty($queries)) {
-    $queries[] = '';
-    drush_sql_register_post_sync_op('commerce-order', dt('Sanitize Commerce orders.'), implode(';', $queries));
+  if (!empty($commerce_order_queries)) {
+    drush_sql_register_post_sync_op('commerce-order', dt('Sanitize Commerce orders.'), implode(';', $commerce_order_queries) . ';');
   }
 
   // Commerce payment module.
-  $queries = array();
+  $commerce_payment_queries = array();
 
   if (in_array('commerce_payment_transaction', $all_tables, TRUE)) {
-    $queries[] = "UPDATE commerce_payment_transaction SET payload = 'a:0:{}'";
+    $commerce_payment_queries[] = "UPDATE commerce_payment_transaction SET payload = 'a:0:{}'";
   }
   if (in_array('commerce_payment_transaction_revision', $all_tables, TRUE)) {
-    $queries[] = "UPDATE commerce_payment_transaction_revision SET data = 'b:0;'";
+    $commerce_payment_queries[] = "UPDATE commerce_payment_transaction_revision SET data = 'b:0;'";
   }
 
-  if (!empty($queries)) {
-    $queries[] = '';
-    drush_sql_register_post_sync_op('commerce-payment', dt('Sanitize Commerce payments.'), implode(';', $queries));
+  if (!empty($commerce_payment_queries)) {
+    drush_sql_register_post_sync_op('commerce-payment', dt('Sanitize Commerce payments.'), implode(';', $commerce_payment_queries) . ';');
   }
 
   // Addressfield module.
-  $queries = array();
+  $addressfield_queries = array();
 
+  // Addressfield column names and SQL replacements for them.
   $column_names = array(
     'country' => "'GB'",
     'administrative_area' => "CONCAT('A', LEFT(sha(%column), 7))",
@@ -116,24 +111,22 @@ function cm_tools_drush_sql_sync_sanitize($site) {
     'name_line' => "CONCAT('N', LEFT(sha(%column), 7))",
     'first_name' => "CONCAT('F', LEFT(sha(%column), 7))",
     'last_name' => "CONCAT('L', LEFT(sha(%column), 7))",
-  // 'data' => '',.
   );
   foreach (_cm_tools_drush_get_fields_of_type('addressfield') as $field_name) {
     if (in_array('field_data_' . $field_name, $all_tables, TRUE)) {
       foreach ($column_names as $column_name => $replacement) {
-        $queries[] = strtr("UPDATE field_data_${field_name} SET %column = $replacement WHERE %column IS NOT NULL AND %column <> ''", array('%column' => $field_name . '_' . $column_name));
+        $addressfield_queries[] = strtr("UPDATE field_data_${field_name} SET %column = $replacement WHERE %column IS NOT NULL AND %column <> ''", array('%column' => $field_name . '_' . $column_name));
       }
     }
     if (in_array('field_revision_' . $field_name, $all_tables, TRUE)) {
       foreach ($column_names as $column_name => $replacement) {
-        $queries[] = strtr("UPDATE field_revision_${field_name} SET %column = $replacement WHERE %column IS NOT NULL AND %column <> ''", array('%column' => $field_name . '_' . $column_name));
+        $addressfield_queries[] = strtr("UPDATE field_revision_${field_name} SET %column = $replacement WHERE %column IS NOT NULL AND %column <> ''", array('%column' => $field_name . '_' . $column_name));
       }
     }
   }
 
-  if (!empty($queries)) {
-    $queries[] = '';
-    drush_sql_register_post_sync_op('addressfield', dt('Sanitize Addressfield.'), implode(';', $queries));
+  if (!empty($addressfield_queries)) {
+    drush_sql_register_post_sync_op('addressfield', dt('Sanitize Addressfield.'), implode(';', $addressfield_queries) . ';');
   }
 }
 
@@ -147,13 +140,7 @@ function cm_tools_drush_sql_sync_sanitize($site) {
  *   An array of field names.
  */
 function _cm_tools_drush_get_fields_of_type($field_type) {
-  $fields = array();
-
-  $return = drush_sql_get_class()->query("SELECT field_name FROM field_config WHERE type = '$field_type';");
-  if ($return) {
-    $fields = drush_shell_exec_output();
-  }
-  return $fields;
+  return _cm_tools_drush_db_query("SELECT field_name FROM field_config WHERE type = ':field_type'", array(':field_type' => $field_type));
 }
 
 /**
@@ -166,13 +153,7 @@ function _cm_tools_drush_get_fields_of_type($field_type) {
  *   An array of role IDs with the given permission
  */
 function _cm_tools_drush_get_roles_with_permission($permission) {
-  $rids = array();
-
-  $return = drush_sql_get_class()->query("SELECT rid FROM role_permission WHERE permission = '${permission}';");
-  if ($return) {
-    $rids = drush_shell_exec_output();
-  }
-  return $rids;
+  return _cm_tools_drush_db_query("SELECT rid FROM role_permission WHERE permission = ':permission'", array(':permission' => $permission));
 }
 
 /**
@@ -185,15 +166,28 @@ function _cm_tools_drush_get_roles_with_permission($permission) {
  *   An array of user IDs with the specified roles.
  */
 function _cm_tools_drush_get_users_with_roles(array $roles) {
-  $users = array();
+  return _cm_tools_drush_db_query('SELECT DISTINCT uid FROM users_roles WHERE rid IN (:roles)', array(':roles' => implode(',', $roles)));
+}
 
-  $in_expression = implode(',', $roles);
-
-  $return = drush_sql_get_class()->query("SELECT DISTINCT uid FROM users_roles WHERE rid IN ($in_expression);");
-  if ($return) {
-    $users = drush_shell_exec_output();
+/**
+ * Execute a SQL query in a limited Drush bootstrap environment.
+ *
+ * @param string $query
+ *   The SQL query to execute.
+ * @param array $placeholders
+ *   An array of placeholders to replace in the query.
+ *
+ * @return array
+ *   An array of lines returned from executing the SQL query.
+ */
+function _cm_tools_drush_db_query($query, array $placeholders) {
+  $prepared_query = strtr(rtrim($query, ' ;') . ';', $placeholders);
+  if (drush_sql_get_class()->query($prepared_query)) {
+    return drush_shell_exec_output();
   }
-  return $users;
+  else {
+    return array();
+  }
 }
 
 /**
