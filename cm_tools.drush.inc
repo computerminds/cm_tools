@@ -199,7 +199,7 @@ function _cm_tools_drush_db_query($query, array $placeholders) {
  * @return int[]
  *   An array of users with the specified permissions.
  */
-function _cm_tools_drush_get_users_with_permission($permission) {
+function cm_tools_drush_get_users_with_permission($permission) {
   if ($roles = _cm_tools_drush_get_roles_with_permission($permission)) {
     return _cm_tools_drush_get_users_with_roles($roles);
   }
@@ -307,7 +307,7 @@ function _cm_tools_drush_sql_sync_sanitize_user_module($site) {
 
   if (!empty($user_table_updates)) {
     // Find users with our permission: 'preserve during sanitization'.
-    $users_to_keep = _cm_tools_drush_get_users_with_permission('preserve during sanitization');
+    $users_to_keep = cm_tools_drush_get_users_with_permission('preserve during sanitization');
 
     if (empty($users_to_keep)) {
       $sanitize_query = "UPDATE users SET " . implode(', ', $user_table_updates) . " WHERE uid > 0;";
