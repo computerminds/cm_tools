@@ -53,6 +53,18 @@ function cm_tools_form_include(&$form_state, $file, $module = 'cm_tools', $dir =
 }
 
 /**
+ * Implements hook_permission().
+ */
+function cm_tools_permission() {
+  return array(
+    'preserve during sanitization' => array(
+      'title' => t('Preserve during SQL Sanitization'),
+      'description' => t('Do not change users with this permission when sanitizing the database using Drush.'),
+    ),
+  );
+}
+
+/**
  * Inserts one or more suggestions into a theme_hook_suggestions array.
  *
  * @param array $haystack
