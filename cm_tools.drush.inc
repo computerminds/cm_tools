@@ -330,31 +330,46 @@ function _cm_tools_drush_sql_sync_sanitize_user_module($site) {
 /**
  * Produce SQL queries for field sanitization.
  *
- * @param $fields
+ * @param array $fields
+ *   An array of fields to sanitize, keys are the field name to sanitize,
+ *   values are a specification of how to sanitize the field. Each of these
+ *   specifications may include the following keys with associated values:
+ *     - 'field_name' - (optional) The name of the field to sanitize, if not
+ *       specified then the key of the outer array is used as the field name.
+ *     - 'columns' - An array of field column names to sanitize, each key in the
+ *       array is a column, and the value is a SQL expression to be used as a
+ *       replacement. The following tokens may be used in the replacement
+ *       expression:
+ *       - '%column' - The full, expanded name of the field column.
+ *     - 'entity_type' - (optional) An array of entity types to sanitize the
+ *       field data for. If not specified no restrictions will be imposed and
+ *       field data for all entity types will be sanitized.
  *
  * @return string
  *   The semi-colon delimited SQL queries.
  */
-function cm_tools_drush_generate_field_sanitize_queries($fields) {
+function cm_tools_drush_generate_field_sanitize_queries(array $fields) {
   $user_fields_sanitize_queries = array();
 
   // Find users with our permission: 'preserve during sanitization'.
   $users_to_keep = cm_tools_drush_get_users_with_permission('preserve during sanitization');
 
-  foreach ($fields as $field_name => $spec) {
+  foreach ($fields as $k => $spec) {
+    $field_name = isset($spec['field_name']) ? $spec['field_name'] : $k;
     // Process each specification into updates to perform on the columns.
     foreach ($spec['columns'] as $column_name => $replacement) {
       $conditions = array(
         '%column IS NOT NULL',
         "%column <> ''",
       );
-      // We need to handle users specifically if there are users to not sanitize.
+      // Handle users specifically if there are users to not sanitize.
       if (!empty($spec['entity_type']) && in_array('user', $spec['entity_type'], TRUE) && !empty($users_to_keep)) {
         $sub_conditions = array();
-        if (!empty(array_diff($spec['entity_type'], array('user')))) {
+        $other_entity_types = array_diff($spec['entity_type'], array('user'));
+        if (!empty($other_entity_types)) {
           $types = array_map(function ($v) {
             return "'$v'";
-          }, array_diff($spec['entity_type'], array('user')));
+          }, $other_entity_types);
           $sub_conditions[] = 'entity_type IN (' . implode(',', $types) . ')';
         }
 
