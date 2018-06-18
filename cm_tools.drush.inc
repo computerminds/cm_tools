@@ -326,3 +326,56 @@ function _cm_tools_drush_sql_sync_sanitize_user_module($site) {
   drush_set_option('sanitize-password', 'no');
   drush_set_option('sanitize-email', 'no');
 }
+
+/**
+ * Produce SQL queries for field sanitization.
+ *
+ * @param $fields
+ *
+ * @return string
+ *   The semi-colon delimited SQL queries.
+ */
+function cm_tools_drush_generate_field_sanitize_queries($fields) {
+  $user_fields_sanitize_queries = array();
+
+  // Find users with our permission: 'preserve during sanitization'.
+  $users_to_keep = cm_tools_drush_get_users_with_permission('preserve during sanitization');
+
+  foreach ($fields as $field_name => $spec) {
+    // Process each specification into updates to perform on the columns.
+    foreach ($spec['columns'] as $column_name => $replacement) {
+      $conditions = array(
+        '%column IS NOT NULL',
+        "%column <> ''",
+      );
+      // We need to handle users specifically if there are users to not sanitize.
+      if (!empty($spec['entity_type']) && in_array('user', $spec['entity_type'], TRUE) && !empty($users_to_keep)) {
+        $sub_conditions = array();
+        if (!empty(array_diff($spec['entity_type'], array('user')))) {
+          $types = array_map(function ($v) {
+            return "'$v'";
+          }, array_diff($spec['entity_type'], array('user')));
+          $sub_conditions[] = 'entity_type IN (' . implode(',', $types) . ')';
+        }
+
+        $expressions_to_keep = implode(',', $users_to_keep);
+        $sub_conditions[] = "(entity_type = 'user' AND entity_id NOT IN ($expressions_to_keep))";
+
+        // Build those conditions onto our main conditions.
+        $conditions[] = '(' . implode(' OR ', $sub_conditions) . ')';
+      }
+      elseif (isset($spec['entity_type']) && is_array($spec['entity_type'])) {
+        $types = array_map(function ($v) {
+          return "'$v'";
+        }, $spec['entity_type']);
+        $conditions[] = 'entity_type IN (' . implode(',', $types) . ')';
+      }
+
+      // Construct the actual queries.
+      foreach (array('field_data', 'field_revision') as $type) {
+        $user_fields_sanitize_queries[] = strtr("UPDATE ${type}_${field_name} SET %column = $replacement  WHERE " . implode(' AND ', $conditions), ['%column' => $field_name . '_' . $column_name]);
+      }
+    }
+  }
+  return implode(';', $user_fields_sanitize_queries) . ';';
+}
