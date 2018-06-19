@@ -94,7 +94,7 @@ function cm_tools_drush_sql_sync_sanitize($site) {
   }
 
   // Addressfield module.
-  $addressfield_queries = array();
+  $addressfield_fields = array();
 
   // Addressfield column names and SQL replacements for them.
   $column_names = array(
@@ -113,20 +113,15 @@ function cm_tools_drush_sql_sync_sanitize($site) {
     'last_name' => "CONCAT('L', LEFT(sha(%column), 7))",
   );
   foreach (_cm_tools_drush_get_fields_of_type('addressfield') as $field_name) {
-    if (in_array('field_data_' . $field_name, $all_tables, TRUE)) {
-      foreach ($column_names as $column_name => $replacement) {
-        $addressfield_queries[] = strtr("UPDATE field_data_${field_name} SET %column = $replacement WHERE %column IS NOT NULL AND %column <> ''", array('%column' => $field_name . '_' . $column_name));
-      }
-    }
-    if (in_array('field_revision_' . $field_name, $all_tables, TRUE)) {
-      foreach ($column_names as $column_name => $replacement) {
-        $addressfield_queries[] = strtr("UPDATE field_revision_${field_name} SET %column = $replacement WHERE %column IS NOT NULL AND %column <> ''", array('%column' => $field_name . '_' . $column_name));
-      }
-    }
+    $addressfield_fields[$field_name] = array(
+      'columns' => $column_names,
+    );
   }
 
-  if (!empty($addressfield_queries)) {
-    drush_sql_register_post_sync_op('addressfield', dt('Sanitize Addressfield.'), implode(';', $addressfield_queries) . ';');
+  // Build the SQL queries using our handy builder.
+  $addressfield_query = cm_tools_drush_generate_field_sanitize_queries($addressfield_fields);
+  if (!empty($addressfield_query)) {
+    drush_sql_register_post_sync_op('addressfield', dt('Sanitize Addressfield.'), $addressfield_query);
   }
 }
 
@@ -325,4 +320,122 @@ function _cm_tools_drush_sql_sync_sanitize_user_module($site) {
   // Stop Drush from adding these queries and sanitizing all the users.
   drush_set_option('sanitize-password', 'no');
   drush_set_option('sanitize-email', 'no');
+}
+
+/**
+ * Produce SQL queries for field sanitization.
+ *
+ * For example, to sanitize field_phone_number and field_first_name:
+ *
+ * @code
+ * $fields = array(
+ *   'field_phone_number' => array(
+ *     'columns' => array(
+ *       'value' => "'0123456789'",
+ *     ),
+ *   ),
+ *   'field_first_name' => array(
+ *     'columns' => array(
+ *       'value' => 'SHA(%column)',
+ *     ),
+ *     'entity_type' => array(
+ *       'user',
+ *     ),
+ *   ),
+ *   'field_first_name__nodes' => array(
+ *     'field_name' => 'field_first_name',
+ *     'columns' => array(
+ *       'value' => "'FIRST NAME'",
+ *     ),
+ *     'entity_type' => array(
+ *       'node',
+ *     ),
+ *   ),
+ * );
+ *
+ * drush_sql_register_post_sync_op('example-fields', dt('Sanitize example'), cm_tools_drush_generate_field_sanitize_queries($fields));
+ * @endcode
+ *
+ * @param array $fields
+ *   An array of fields to sanitize, keys are the field name to sanitize,
+ *   values are a specification of how to sanitize the field. Each of these
+ *   specifications may include the following keys with associated values:
+ *     - 'field_name' - (optional) The name of the field to sanitize, if not
+ *       specified then the key of the outer array is used as the field name.
+ *     - 'columns' - An array of field column names to sanitize, each key in the
+ *       array is a column, and the value is a SQL expression to be used as a
+ *       replacement. The following tokens may be used in the replacement
+ *       expression:
+ *       - '%column' - The full, expanded name of the field column.
+ *     - 'entity_type' - (optional) An array of entity types to sanitize the
+ *       field data for. If not specified no restrictions will be imposed and
+ *       field data for all entity types will be sanitized.
+ *
+ * @return string|null
+ *   The semi-colon delimited SQL queries or NULL if there are no queries to
+ *   execute.
+ */
+function cm_tools_drush_generate_field_sanitize_queries(array $fields) {
+  $field_sanitize_queries = array();
+
+  // Find users with our permission: 'preserve during sanitization'.
+  $users_to_keep = cm_tools_drush_get_users_with_permission('preserve during sanitization');
+
+  // Fetch list of all tables.
+  $all_tables = drush_sql_get_class()->listTables();
+
+  foreach ($fields as $k => $spec) {
+    $field_name = isset($spec['field_name']) ? $spec['field_name'] : $k;
+    // Ensure that entity_type is at least an empty array.
+    $spec['entity_type'] = isset($spec['entity_type']) ? $spec['entity_type'] : array();
+    // Process each specification into updates to perform on the columns.
+    foreach ($spec['columns'] as $column_name => $replacement) {
+      $conditions = array(
+        // Avoid setting empty columns to something that contains data.
+        '%column IS NOT NULL',
+        "%column <> ''",
+      );
+      // Handle users specifically if there are users to not sanitize.
+      if (empty($spec['entity_type']) || in_array('user', $spec['entity_type'], TRUE) && !empty($users_to_keep)) {
+        $sub_conditions = array();
+        $other_entity_types = array_diff($spec['entity_type'], array('user'));
+        if (!empty($other_entity_types)) {
+          $types = array_map(function ($v) {
+            return "'$v'";
+          }, $other_entity_types);
+          $sub_conditions[] = 'entity_type IN (' . implode(',', $types) . ')';
+        }
+        // If no entity type restrictions, sanitize all non user entities.
+        elseif (empty($spec['entity_type'])) {
+          $sub_conditions[] = "entity_type != 'user'";
+        }
+
+        $expressions_to_keep = implode(',', $users_to_keep);
+        // Sanitize all users that are not specially marked.
+        $sub_conditions[] = "(entity_type = 'user' AND entity_id NOT IN ($expressions_to_keep))";
+
+        // Build those conditions onto our main conditions.
+        $conditions[] = '(' . implode(' OR ', $sub_conditions) . ')';
+      }
+      elseif (isset($spec['entity_type']) && is_array($spec['entity_type'])) {
+        $types = array_map(function ($v) {
+          return "'$v'";
+        }, $spec['entity_type']);
+        $conditions[] = 'entity_type IN (' . implode(',', $types) . ')';
+      }
+
+      // Construct the actual queries.
+      foreach (array('field_data', 'field_revision') as $type) {
+        if (in_array("${type}_${field_name}", $all_tables, TRUE)) {
+          $field_sanitize_queries[] = strtr("UPDATE ${type}_${field_name} SET %column = $replacement  WHERE " . implode(' AND ', $conditions), array('%column' => $field_name . '_' . $column_name));
+        }
+      }
+    }
+  }
+  if (!empty($field_sanitize_queries)) {
+    return implode(';', $field_sanitize_queries) . ';';
+  }
+  else {
+    return NULL;
+  }
 }
