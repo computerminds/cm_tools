@@ -330,6 +330,37 @@ function _cm_tools_drush_sql_sync_sanitize_user_module($site) {
 /**
  * Produce SQL queries for field sanitization.
  *
+ * For example, to sanitize field_phone_number and field_first_name:
+ *
+ * @code
+ * $fields = array(
+ *   'field_phone_number' => array(
+ *     'columns' => array(
+ *       'value' => "'0123456789'",
+ *     ),
+ *   ),
+ *   'field_first_name' => array(
+ *     'columns' => array(
+ *       'value' => 'SHA(%column)',
+ *     ),
+ *     'entity_type' => array(
+ *       'user',
+ *     ),
+ *   ),
+ *   'field_first_name__nodes' => array(
+ *     'field_name' => 'field_first_name',
+ *     'columns' => array(
+ *       'value' => "'FIRST NAME'",
+ *     ),
+ *     'entity_type' => array(
+ *       'node',
+ *     ),
+ *   ),
+ * );
+ *
+ * drush_sql_register_post_sync_op('example-fields', dt('Sanitize example'), cm_tools_drush_generate_field_sanitize_queries($fields));
+ * @endcode
+ *
  * @param array $fields
  *   An array of fields to sanitize, keys are the field name to sanitize,
  *   values are a specification of how to sanitize the field. Each of these
@@ -388,7 +419,7 @@ function cm_tools_drush_generate_field_sanitize_queries(array $fields) {
 
       // Construct the actual queries.
       foreach (array('field_data', 'field_revision') as $type) {
-        $user_fields_sanitize_queries[] = strtr("UPDATE ${type}_${field_name} SET %column = $replacement  WHERE " . implode(' AND ', $conditions), ['%column' => $field_name . '_' . $column_name]);
+        $user_fields_sanitize_queries[] = strtr("UPDATE ${type}_${field_name} SET %column = $replacement  WHERE " . implode(' AND ', $conditions), array('%column' => $field_name . '_' . $column_name));
       }
     }
   }
