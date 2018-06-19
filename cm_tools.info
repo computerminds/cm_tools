@@ -3,4 +3,4 @@ core = "7.x"
 description = "A collection of tools and helpers written by Computerminds."
 php = 5.4
 
-version = 7.x-2.0
+version = 7.x-2.x
