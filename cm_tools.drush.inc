@@ -406,16 +406,20 @@ function cm_tools_drush_generate_field_sanitize_queries(array $fields) {
           $sub_conditions[] = 'entity_type IN (' . implode(',', $types) . ')';
         }
         // If no entity type restrictions, sanitize all non user entities.
-        elseif (empty($spec['entity_type'])) {
+        elseif (empty($spec['entity_type']) && !empty($users_to_keep)) {
           $sub_conditions[] = "entity_type != 'user'";
         }
 
-        $expressions_to_keep = implode(',', $users_to_keep);
-        // Sanitize all users that are not specially marked.
-        $sub_conditions[] = "(entity_type = 'user' AND entity_id NOT IN ($expressions_to_keep))";
+        if (!empty($users_to_keep)) {
+          $expressions_to_keep = implode(',', $users_to_keep);
+          // Sanitize all users that are not specially marked.
+          $sub_conditions[] = "(entity_type = 'user' AND entity_id NOT IN ($expressions_to_keep))";
+        }
 
-        // Build those conditions onto our main conditions.
-        $conditions[] = '(' . implode(' OR ', $sub_conditions) . ')';
+        if (!empty($sub_conditions)) {
+          // Build those conditions onto our main conditions.
+          $conditions[] = '(' . implode(' OR ', $sub_conditions) . ')';
+        }
       }
       elseif (isset($spec['entity_type']) && is_array($spec['entity_type'])) {
         $types = array_map(function ($v) {
