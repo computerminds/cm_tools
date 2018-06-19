@@ -120,7 +120,7 @@ function cm_tools_drush_sql_sync_sanitize($site) {
 
   // Build the SQL queries using our handy builder.
   $addressfield_query = cm_tools_drush_generate_field_sanitize_queries($addressfield_fields);
-  if (!empty($addressfield_queries)) {
+  if (!empty($addressfield_query)) {
     drush_sql_register_post_sync_op('addressfield', dt('Sanitize Addressfield.'), $addressfield_query);
   }
 }
