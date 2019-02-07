@@ -90,7 +90,7 @@ function cm_tools_init() {
 /**
  * Access callback for the CM Tools monitoring page.
  *
- * @param $token
+ * @param string $token
  *   The token to check.
  *
  * @return bool
