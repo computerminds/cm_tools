@@ -24,28 +24,27 @@
  * $bean1->save(TRUE);
  * @endcode
  *
- * @param $bean_type
+ * @param string $bean_type
  *   The type of bean to create (bundle name).
- * @param $label
+ * @param string $label
  *   The label for this bean that will appear in the admin UI.
- * @param $delta
+ * @param string $delta
  *   The machine name for this bean.
- * @param $title
+ * @param string $title
  *   The title of the bean, that will be used as the block title.
- * @param $data
+ * @param array $data
  *   Extra data to store.
- * @param $reset
+ * @param bool $reset
  *   Pass TRUE to reset several static caches that allow you to create a new
  *   bean with a bean type that you've also added in this page request.
  *
- * @return
- *   A new bean entity, you should make whatever additions you want, fields etc. and then call the save method on this object to save your new bean:
+ * @return Bean
+ *   A new bean entity.
  *
- * @code
- *    $bean->save(TRUE);
- * @endcode
+ *   You should make whatever additions you want, fields etc. and then call the
+ *   save method on this object to save your new bean.
  */
-function cm_tools_bean_create($bean_type, $label, $delta, $title = '', $data = array(), $reset = FALSE) {
+function cm_tools_bean_create($bean_type, $label, $delta, $title = '', array $data = array(), $reset = FALSE) {
 
   // Reset some static caches so we pick up newly added bean types correctly.
   if ($reset) {

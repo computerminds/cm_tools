@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @file
  * The Computerminds tools module.
@@ -22,11 +23,11 @@ include_once 'cm_tools.element.inc';
  * cm_tools_include('profile');
  * @endcode
  *
- * @param $file
+ * @param string $file
  *   The base file name to be included.
- * @param $module
+ * @param string $module
  *   Optional module containing the include.
- * @param $dir
+ * @param string $dir
  *   Optional subdirectory containing the include file.
  */
 function cm_tools_include($file, $module = 'cm_tools', $dir = 'includes') {
@@ -49,6 +50,18 @@ function cm_tools_include($file, $module = 'cm_tools', $dir = 'includes') {
 function cm_tools_form_include(&$form_state, $file, $module = 'cm_tools', $dir = 'includes') {
   $dir = '/' . ($dir ? $dir . '/' : '');
   form_load_include($form_state, 'inc', $module, $dir . $file);
+}
+
+/**
+ * Implements hook_permission().
+ */
+function cm_tools_permission() {
+  return array(
+    'preserve during sanitization' => array(
+      'title' => t('Preserve during SQL Sanitization'),
+      'description' => t('Do not change users with this permission when sanitizing the database using Drush.'),
+    ),
+  );
 }
 
 /**
@@ -120,12 +133,12 @@ function cm_tools_get_uptime_path_token() {
 /**
  * Inserts one or more suggestions into a theme_hook_suggestions array.
  *
- * @param $haystack
+ * @param array $haystack
  *   The $vars['theme_hook_suggestions'] array. It is modified by reference.
- * @param $insert_value
+ * @param string|array $insert_value
  *   String value after which to insert $suggestions. May also be an array of
  *   suggested values in which case the first one to be found will be used.
- * @param array $suggestions
+ * @param string|array $suggestions
  *   A single new suggestion, or array of new suggestions to insert.
  * @param bool $insert_before
  *   (Optional) Change the behaviour of this function to insert *before*
@@ -138,7 +151,7 @@ function cm_tools_get_uptime_path_token() {
  * @return bool
  *   Success, either TRUE or FALSE.
  */
-function cm_tools_insert_theme_hook_suggestion(&$haystack, $insert_value, $suggestions, $insert_before = FALSE, $append_on_fail = TRUE) {
+function cm_tools_insert_theme_hook_suggestion(array &$haystack, $insert_value, $suggestions, $insert_before = FALSE, $append_on_fail = TRUE) {
 
   if (!is_array($insert_value)) {
     $insert_value = array($insert_value);
@@ -166,18 +179,18 @@ function cm_tools_insert_theme_hook_suggestion(&$haystack, $insert_value, $sugge
 /**
  * Renames an array key while leaving it in exactly the same place in the array.
  *
- * @param $haystack
+ * @param array $haystack
  *   The array. This is modified by reference.
- * @param $key
+ * @param int|string $key
  *   The key to rename.
- * @param $new_key
+ * @param int|string $new_key
  *   The new name for the key. If this already exists in the array it will be
  *   overwritten.
  *
  * @return bool
  *   Success, either TRUE or FALSE.
  */
-function cm_tools_array_rename_key(&$haystack, $key, $new_key) {
+function cm_tools_array_rename_key(array &$haystack, $key, $new_key) {
   $success = FALSE;
 
   if (isset($haystack[$key])) {
@@ -200,12 +213,12 @@ function cm_tools_array_rename_key(&$haystack, $key, $new_key) {
  * The insert value is found by *strict* comparison. If multiple values are
  * found the insertion will be made next to the first occurance only.
  *
- * @param $haystack
+ * @param array $haystack
  *   The array. This is modified by reference.
- * @param $insert_value
+ * @param mixed $insert_value
  *   Array value after which to insert $insertion. A *strict* comparison is
  *   performed when searching for this value.
- * @param array $insertions
+ * @param mixed $insertions
  *   Array of new values to insert into the array. If $preserve_keys is TRUE and
  *   an element already exists in the array with the same key as one you are
  *   inserting, the old one(s) will removed. If this parameter is not an array
@@ -221,7 +234,7 @@ function cm_tools_array_rename_key(&$haystack, $key, $new_key) {
  * @return bool
  *   Success, either TRUE or FALSE.
  */
-function cm_tools_array_insert_at_value(&$haystack, $insert_value, $insertions, $insert_before = FALSE, $preserve_keys = FALSE) {
+function cm_tools_array_insert_at_value(array &$haystack, $insert_value, $insertions, $insert_before = FALSE, $preserve_keys = FALSE) {
   $success = FALSE;
   $insert_key = array_search($insert_value, $haystack, TRUE);
   if ($insert_key !== FALSE) {
@@ -235,14 +248,14 @@ function cm_tools_array_insert_at_value(&$haystack, $insert_value, $insertions, 
  *
  * The insert key is found by *strict* comparison.
  *
- * @param $haystack
+ * @param array $haystack
  *   The array. This is modified by reference.
- * @param $insert_key
+ * @param int|string|array $insert_key
  *   Array key after which to insert $insertion. This can also be an array of
  *   suggested keys, in which case each will be looked for in turn and the
  *   first existing one will be used. A *strict* comparison is performed when
  *   searching for this key.
- * @param array $insertions
+ * @param mixed $insertions
  *   Array of new values to insert into the array. Unless $preserve_keys is
  *   FALSE if an element already exists in the array with the same key as one
  *   you are inserting, the old one(s) will removed. If this parameter is not an
@@ -259,7 +272,7 @@ function cm_tools_array_insert_at_value(&$haystack, $insert_value, $insertions, 
  * @return bool
  *   Success, either TRUE or FALSE.
  */
-function cm_tools_array_insert_at_key(&$haystack, $insert_key, $insertions, $insert_before = FALSE, $preserve_keys = TRUE) {
+function cm_tools_array_insert_at_key(array &$haystack, $insert_key, $insertions, $insert_before = FALSE, $preserve_keys = TRUE) {
 
   $success = FALSE;
 
@@ -287,11 +300,11 @@ function cm_tools_array_insert_at_key(&$haystack, $insert_key, $insertions, $ins
 /**
  * Inserts a new element at an offset in an array.
  *
- * @param $haystack
+ * @param array $haystack
  *   The array. This is modified by reference.
- * @param $offset
+ * @param int $offset
  *   Offset after which to insert $insertion.
- * @param array $insertions
+ * @param mixed $insertions
  *   Array of new values to insert into the array. If $preserve_keys is TRUE and
  *   an element already exists in the array with the same key as one you are
  *   inserting, the old one(s) will removed. If this parameter is not an array
@@ -304,11 +317,11 @@ function cm_tools_array_insert_at_key(&$haystack, $insert_key, $insertions, $ins
  * @return bool
  *   Success, either TRUE or FALSE.
  */
-function cm_tools_array_insert_at_offset(&$haystack, $offset, $insertions, $preserve_keys = FALSE) {
+function cm_tools_array_insert_at_offset(array &$haystack, $offset, $insertions, $preserve_keys = FALSE) {
 
   $success = FALSE;
 
-  if (!is_integer($offset)) {
+  if (!is_int($offset)) {
     return FALSE;
   }
 
@@ -362,12 +375,12 @@ function cm_tools_array_insert_at_offset(&$haystack, $offset, $insertions, $pres
 /**
  * Remove element(s) with given value(s) from an array.
  *
- * @param $haystack
+ * @param array $haystack
  *   The array. This is modified by reference.
- * @param $values
+ * @param string|array $values
  *   A string value or array of values to remove from the array.
  */
-function cm_tools_array_remove_values(&$haystack, $values) {
+function cm_tools_array_remove_values(array &$haystack, $values) {
   // Make values an array.
   if (is_string($values)) {
     $values = array($values);
@@ -393,8 +406,13 @@ function cm_tools_array_remove_values(&$haystack, $values) {
  * @param array $array
  *   The input array.
  * @param callable $cmp_function
+ *   A comparision function that will abide by the usual semantics of a
+ *   comparision callback. See @usort.
+ *
+ * @return int
+ *   The result of the sort.
  */
-function cm_tools_stable_usort(&$array, $cmp_function) {
+function cm_tools_stable_usort(array &$array, callable $cmp_function) {
   $index = 0;
   foreach ($array as &$item) {
     $item = array($index++, $item);
@@ -421,8 +439,13 @@ function cm_tools_stable_usort(&$array, $cmp_function) {
  * @param array $array
  *   The input array.
  * @param callable $cmp_function
+ *   A comparision function that will abide by the usual semantics of a
+ *   comparision callback. See @usort.
+ *
+ * @return int
+ *   The result of the sort.
  */
-function cm_tools_stable_uasort(&$array, $cmp_function) {
+function cm_tools_stable_uasort(array &$array, callable $cmp_function) {
   $index = 0;
   foreach ($array as &$item) {
     $item = array($index++, $item);
@@ -625,10 +648,10 @@ function cm_tools_preprocess_page(&$vars) {
  *
  *   $render_array['#attached']['cm_tools_add_async_js'][] = array(<url>, <id>);
  *
- * @param $script
+ * @param string $script
  *   The URL of the script to load (schemeless/protocol relative are
  *   best, for avoiding mixed http/https content warnings).
- * @param $id
+ * @param string $id
  *   The id to give the script tag (to prevent multiple loads).
  */
 function cm_tools_add_async_js($script = '', $id = '') {

@@ -2,15 +2,17 @@
 
 /**
  * @file
+ * Helper functions for file fields.
  */
 
 /**
  * Helper function for creating a new file value on a node.
+ *
  * Can only handle files that are already on the server.
  *
- * @param $source
+ * @param string $source
  *   A string specifying the filepath or URI of the source file.
- * @param $destination
+ * @param string $destination
  *   A URI containing the destination that $source should be copied to. It may
  *   be one of the following:
  *    1. NULL - copy file to the default scheme (probably 'public://'),
@@ -20,7 +22,6 @@
  *       the $source location itself and return that,
  *   If $destination is a pre-existing filepath then this function will do
  *   nothing and will return FALSE.
- *
  * @param ...
  *   Other metadata about the file.
  */
