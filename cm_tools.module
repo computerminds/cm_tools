@@ -65,6 +65,72 @@ function cm_tools_permission() {
 }
 
 /**
+ * Implements hook_menu().
+ */
+function cm_tools_menu() {
+  $items['cm_tools/monitoring/%'] = array(
+    'page callback' => 'cm_tools_monitoring_page_callback',
+    'access callback' => 'cm_tools_monitoring_access_callback',
+    'access arguments' => array(2),
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_init().
+ */
+function cm_tools_init() {
+  // Our monitoring page is never in maintenance mode.
+  if ($_GET['q'] === 'cm_tools/monitoring/' . cm_tools_get_uptime_path_token()) {
+    $GLOBALS['conf']['maintenance_mode'] = 0;
+  }
+}
+
+/**
+ * Access callback for the CM Tools monitoring page.
+ *
+ * @param string $token
+ *   The token to check.
+ *
+ * @return bool
+ *   TRUE if the token matches the one stored for this site. FALSE otherwise.
+ */
+function cm_tools_monitoring_access_callback($token) {
+  return $token === cm_tools_get_uptime_path_token();
+}
+
+/**
+ * Page callback for the monitoring page.
+ */
+function cm_tools_monitoring_page_callback() {
+  // @TODO: We could check to see if Memcache etc. are configured and functioning correctly.
+  drupal_page_is_cacheable(FALSE);
+  // Print something unlikely to be printed by e.g. Apache error pages.
+  print sha1(__FUNCTION__ . cm_tools_get_uptime_path_token());
+  print "\n";
+  print date('c');
+  drupal_exit();
+}
+
+/**
+ * Get a stable token for use in a path that is unique to this site.
+ *
+ * @return string
+ *   The path token.
+ */
+function cm_tools_get_uptime_path_token() {
+  if ($token = variable_get('cm_tools_get_uptime_path_token')) {
+    return $token;
+  }
+  else {
+    $token = drupal_random_key(64);
+    variable_set('cm_tools_get_uptime_path_token', $token);
+    return $token;
+  }
+}
+
+/**
  * Inserts one or more suggestions into a theme_hook_suggestions array.
  *
  * @param array $haystack
