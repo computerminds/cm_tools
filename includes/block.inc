@@ -15,7 +15,7 @@
  * @param array $block
  *   Options for the block.
  */
-function cm_tools_block_position($module, $delta, $block = array(), $all_themes = TRUE, $types = array()) {
+function cm_tools_block_position($module, $delta, array $block = array(), $all_themes = TRUE, $types = array()) {
   $block['module'] = $module;
   $block['delta'] = $delta;
   $block += array(
