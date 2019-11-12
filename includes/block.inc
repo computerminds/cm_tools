@@ -73,6 +73,26 @@ function cm_tools_block_position($module, $delta, $block = array(), $all_themes 
       'i18n_mode' => TRUE,
     )))
     ->execute();
+
+  if ($types) {
+    db_delete('block_node_type')
+      ->condition('module', $module)
+      ->condition('delta', $delta)
+      ->execute();
+    $query = db_insert('block_node_type')->fields(array(
+      'type',
+      'module',
+      'delta'
+    ));
+    foreach (array_filter($types) as $type) {
+      $query->values(array(
+        'type' => $type,
+        'module' => $module,
+        'delta' => $delta,
+      ));
+    }
+    $query->execute();
+  }
 }
 
 /**
