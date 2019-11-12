@@ -14,8 +14,12 @@
  *   The block delta.
  * @param array $block
  *   Options for the block.
+ * @param bool $all_themes
+ *   Whether the block should be placed in all themes.
+ * @param array $types
+ *   List of node types the block should display on.
  */
-function cm_tools_block_position($module, $delta, array $block = array(), $all_themes = TRUE) {
+function cm_tools_block_position($module, $delta, array $block = array(), $all_themes = TRUE, $types = array()) {
   $block['module'] = $module;
   $block['delta'] = $delta;
   $block += array(
@@ -74,6 +78,26 @@ function cm_tools_block_position($module, $delta, array $block = array(), $all_t
       'i18n_mode' => TRUE,
     )))
     ->execute();
+
+  if ($types) {
+    db_delete('block_node_type')
+      ->condition('module', $module)
+      ->condition('delta', $delta)
+      ->execute();
+    $query = db_insert('block_node_type')->fields(array(
+      'type',
+      'module',
+      'delta'
+    ));
+    foreach (array_filter($types) as $type) {
+      $query->values(array(
+        'type' => $type,
+        'module' => $module,
+        'delta' => $delta,
+      ));
+    }
+    $query->execute();
+  }
 }
 
 /**
