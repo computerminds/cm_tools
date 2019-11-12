@@ -14,6 +14,10 @@
  *   The block delta.
  * @param array $block
  *   Options for the block.
+ * @param bool $all_themes
+ *   Whether the block should be placed in all themes.
+ * @param array $types
+ *   List of node types the block should display on.
  */
 function cm_tools_block_position($module, $delta, array $block = array(), $all_themes = TRUE, $types = array()) {
   $block['module'] = $module;
