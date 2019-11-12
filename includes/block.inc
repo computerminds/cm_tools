@@ -19,7 +19,7 @@
  * @param array $types
  *   List of node types the block should display on.
  */
-function cm_tools_block_position($module, $delta, array $block = array(), $all_themes = TRUE, $types = array()) {
+function cm_tools_block_position($module, $delta, array $block = array(), $all_themes = TRUE, array $types = array()) {
   $block['module'] = $module;
   $block['delta'] = $delta;
   $block += array(
