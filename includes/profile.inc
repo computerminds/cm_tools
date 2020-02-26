@@ -99,7 +99,9 @@ function cm_tools_update_efq_walk(array &$sandbox, EntityFieldQuery $query, call
     }
   }
 
-  $sandbox['#finished'] = $sandbox['_cm_tools_update_efq_batch']['current'] / $sandbox['_cm_tools_update_efq_batch']['total'];
+  if (!empty($sandbox['_cm_tools_update_efq_batch']['total'])) {
+    $sandbox['#finished'] = $sandbox['_cm_tools_update_efq_batch']['current'] / $sandbox['_cm_tools_update_efq_batch']['total'];
+  }
 }
 
 /**
