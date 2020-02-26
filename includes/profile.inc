@@ -96,8 +96,10 @@ function cm_tools_update_efq_walk(&$sandbox, EntityFieldQuery $query, $callback,
     }
   }
 
-  // Set the value for finished. If current == total then finished will be 1, signifying we are done.
-  $sandbox['#finished'] = $sandbox['_cm_tools_update_efq_batch']['current'] / $sandbox['_cm_tools_update_efq_batch']['total'];
+  if (!empty($sandbox['_cm_tools_update_efq_batch']['total'])) {
+    // Set the value for finished. If current == total then finished will be 1, signifying we are done.
+    $sandbox['#finished'] = $sandbox['_cm_tools_update_efq_batch']['current'] / $sandbox['_cm_tools_update_efq_batch']['total'];
+  }
 }
 
 /**
