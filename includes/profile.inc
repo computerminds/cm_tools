@@ -50,6 +50,85 @@ function cm_tools_module_disable($modules) {
 }
 
 /**
+ * Apply given work_callback to the entities supplied.
+ *
+ * This function is designed to work in the context of a Drupal update hook, it
+ * accepts the sandbox that is passed to the update hook as its first parameter.
+ * The entities to iterate over and the state of the iterations are stored in
+ * the sandbox.
+ *
+ * @param array $sandbox
+ *   The sandbox passed to the drupal hook hook that this function is called
+ *   from.
+ * @param callable $entity_list_callback
+ *   A callback that returns an associative array keyed by entity type where the
+ *   values are arrays of entity IDs to iterate over. This will be called when
+ *   needed to produce the list of entities to iterate over.
+ * @param callable $work_callback
+ *   The callback to apply to each entity returned from the
+ *   $entity_list_callback. The callback is called with two arguments:
+ *   - The entity type of the entity in the second argument
+ *   - The loaded entity.
+ * @param int $entities_per_pass
+ *   The number of entities to load and process in each batch iteration.
+ *
+ * Example usage:
+ * @code
+ * function node_update_7017(&$sandbox) {
+ *   $entity_list_callback = function () {
+ *     $select = db_select('node', 'n')
+ *       ->condition('n.type', 'article')
+ *       ->fields('n', array('nid'));
+ *     $result = $select->execute()->fetchCol();
+ *     $entities = array();
+ *     if (!empty($result)) {
+ *       $entities['node'] = $result;
+ *     }
+ *     return $entities;
+ *   };
+ *   $work_callback = function ($entity_type, $entity) {
+ *     node_save($entity);
+ *   };
+ *   cm_tools_include('profile');
+ *   // Load and save all article nodes.
+ *   cm_tools_update_entities_walk($sandbox, $entity_list_callback, $work_callback);
+ * }
+ * @endcode
+ */
+function cm_tools_update_entities_walk(array &$sandbox, callable $entity_list_callback, callable $work_callback, $entities_per_pass = 10) {
+  // On the first pass through this update function compute the work to be done.
+  if (!isset($sandbox['_cm_tools_update_entities_walk'])) {
+    $sandbox['_cm_tools_update_entities_walk'] = array(
+      'current' => 0,
+      'total' => 0,
+    );
+    foreach (call_user_func($entity_list_callback) as $entity_type => $entity_type_entities) {
+      $sandbox['_cm_tools_update_entities_walk']['entities'][$entity_type] = array_chunk($entity_type_entities, $entities_per_pass);
+      $sandbox['_cm_tools_update_entities_walk']['total'] += count($entity_type_entities);
+    }
+  }
+
+  if (!empty($sandbox['_cm_tools_update_entities_walk']['entities'])) {
+    // Get the first entity type to process.
+    reset($sandbox['_cm_tools_update_entities_walk']['entities']);
+    $entity_type = key($sandbox['_cm_tools_update_entities_walk']['entities']);
+    $entity_ids = array_shift($sandbox['_cm_tools_update_entities_walk']['entities'][$entity_type]);
+    foreach (entity_load($entity_type, $entity_ids) as $entity) {
+      call_user_func($work_callback, $entity_type, $entity);
+      $sandbox['_cm_tools_update_entities_walk']['current']++;
+    }
+    // Clear up this $entity_type if we've processed all the chunks.
+    if (empty($sandbox['_cm_tools_update_entities_walk']['entities'][$entity_type])) {
+      unset($sandbox['_cm_tools_update_entities_walk']['entities'][$entity_type]);
+    }
+  }
+
+  if (!empty($sandbox['_cm_tools_update_entities_walk']['total'])) {
+    $sandbox['#finished'] = $sandbox['_cm_tools_update_entities_walk']['current'] / $sandbox['_cm_tools_update_entities_walk']['total'];
+  }
+}
+
+/**
  * Apply given callback to the entities returned by the given EntityFieldQuery.
  *
  * This function is designed to work in the context of a Drupal update hook, it
@@ -71,37 +150,15 @@ function cm_tools_module_disable($modules) {
  *   The number of entities to load and process in each batch iteration.
  */
 function cm_tools_update_efq_walk(array &$sandbox, EntityFieldQuery $query, callable $callback, $entities_per_pass = 10) {
-  // On the first pass through this update function compute the work to be done.
-  if (!isset($sandbox['_cm_tools_update_efq_batch'])) {
-    $sandbox['_cm_tools_update_efq_batch'] = array(
-      'current' => 0,
-      'total' => 0,
-    );
+  $entity_list_callback = function () use ($query) {
     $result = $query->execute();
+    $entities = array();
     foreach ($result as $entity_type => $results) {
-      $sandbox['_cm_tools_update_efq_batch']['entities'][$entity_type] = array_chunk(array_keys($results), $entities_per_pass);
-      $sandbox['_cm_tools_update_efq_batch']['total'] += count($results);
+      $entities[$entity_type] = array_keys($results);
     }
-  }
-
-  if (!empty($sandbox['_cm_tools_update_efq_batch']['entities'])) {
-    // Get the first entity type to process.
-    reset($sandbox['_cm_tools_update_efq_batch']['entities']);
-    $entity_type = key($sandbox['_cm_tools_update_efq_batch']['entities']);
-    $entity_ids = array_shift($sandbox['_cm_tools_update_efq_batch']['entities'][$entity_type]);
-    foreach (entity_load($entity_type, $entity_ids) as $entity) {
-      call_user_func($callback, $entity_type, $entity);
-      $sandbox['_cm_tools_update_efq_batch']['current']++;
-    }
-    // Clear up this $entity_type if we've processed all the chunks.
-    if (empty($sandbox['_cm_tools_update_efq_batch']['entities'][$entity_type])) {
-      unset($sandbox['_cm_tools_update_efq_batch']['entities'][$entity_type]);
-    }
-  }
-
-  if (!empty($sandbox['_cm_tools_update_efq_batch']['total'])) {
-    $sandbox['#finished'] = $sandbox['_cm_tools_update_efq_batch']['current'] / $sandbox['_cm_tools_update_efq_batch']['total'];
-  }
+    return $entities;
+  };
+  cm_tools_update_entities_walk($sandbox, $entity_list_callback, $callback, $entities_per_pass);
 }
 
 /**
