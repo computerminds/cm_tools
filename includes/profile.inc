@@ -57,21 +57,6 @@ function cm_tools_module_disable($modules) {
  * The entities to iterate over and the state of the iterations are stored in
  * the sandbox.
  *
- * @param array $sandbox
- *   The sandbox passed to the drupal hook hook that this function is called
- *   from.
- * @param callable $entity_list_callback
- *   A callback that returns an associative array keyed by entity type where the
- *   values are arrays of entity IDs to iterate over. This will be called when
- *   needed to produce the list of entities to iterate over.
- * @param callable $work_callback
- *   The callback to apply to each entity returned from the
- *   $entity_list_callback. The callback is called with two arguments:
- *   - The entity type of the entity in the second argument
- *   - The loaded entity.
- * @param int $entities_per_pass
- *   The number of entities to load and process in each batch iteration.
- *
  * Example usage:
  * @code
  * function node_update_7017(&$sandbox) {
@@ -94,6 +79,21 @@ function cm_tools_module_disable($modules) {
  *   cm_tools_update_entities_walk($sandbox, $entity_list_callback, $work_callback);
  * }
  * @endcode
+ *
+ * @param array $sandbox
+ *   The sandbox passed to the drupal hook hook that this function is called
+ *   from.
+ * @param callable $entity_list_callback
+ *   A callback that returns an associative array keyed by entity type where the
+ *   values are arrays of entity IDs to iterate over. This will be called when
+ *   needed to produce the list of entities to iterate over.
+ * @param callable $work_callback
+ *   The callback to apply to each entity returned from the
+ *   $entity_list_callback. The callback is called with two arguments:
+ *   - The entity type of the entity in the second argument
+ *   - The loaded entity.
+ * @param int $entities_per_pass
+ *   The number of entities to load and process in each batch iteration.
  */
 function cm_tools_update_entities_walk(array &$sandbox, callable $entity_list_callback, callable $work_callback, $entities_per_pass = 10) {
   // On the first pass through this update function compute the work to be done.
