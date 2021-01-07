@@ -176,9 +176,7 @@ function cm_tools_update_efq_walk(array &$sandbox, EntityFieldQuery $query, call
  *   The entity type to iterate over.
  * @param callable $callback
  *   The callback to apply to each entity returned from the $query. The callback
- *   is called with two arguments:
- *   - The entity type of the entity in the second argument
- *   - The loaded entity.
+ *   is called with a single argument, which is the loaded entity.
  * @param null|string $bundle
  *   The bundle to iterate over, if NULL then all bundles of the given entity
  *   type will be iterated.
