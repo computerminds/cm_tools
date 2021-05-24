@@ -104,7 +104,7 @@ function cm_tools_monitoring_access_callback($token) {
  * Page callback for the monitoring page.
  */
 function cm_tools_monitoring_page_callback() {
-  // @TODO: We could check to see if Memcache etc. are configured and functioning correctly.
+  // @todo: We could check to see if Memcache etc. are configured/functioning.
   drupal_page_is_cacheable(FALSE);
   // Print something unlikely to be printed by e.g. Apache error pages.
   print sha1(__FUNCTION__ . cm_tools_get_uptime_path_token());

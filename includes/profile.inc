@@ -521,23 +521,23 @@ function cm_tools_update_missing_default_field_values_insert_with_languages(arra
  *   A status message suitable for the return value of your update hook.
  */
 function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_callback, callable $work_callback, $rows_per_pass = 50) {
-/*
- *              INITIALISE
- *                   │
- *                   │  ┌───────────────────────────────────┐
- *          move to next table     ┌─────────────────────┐  │
- *                   │  │          │      Next chunk     │  │
- *           ┌───────▼──▼─────┐    │  ┌────────────────┐ │  │
- *           │ GATHER ROWS    │    └──► PROCESS ROWS   ├─┘  │
- *           │ - <table>      ├───────► - <table>      ├────┘
- *           │                │ First │ - <rows chunk> │
- *           │                │ chunk └────────────────┘
- *           └───────┬────────┘
- *                   │ No tables
- *                   │  left
- *                   ▼
- *                  END
- */
+  /*
+   *              INITIALISE
+   *                   │
+   *                   │  ┌───────────────────────────────────┐
+   *          move to next table     ┌─────────────────────┐  │
+   *                   │  │          │      Next chunk     │  │
+   *           ┌───────▼──▼─────┐    │  ┌────────────────┐ │  │
+   *           │ GATHER ROWS    │    └──► PROCESS ROWS   ├─┘  │
+   *           │ - <table>      ├───────► - <table>      ├────┘
+   *           │                │ First │ - <rows chunk> │
+   *           │                │ chunk └────────────────┘
+   *           └───────┬────────┘
+   *                   │ No tables
+   *                   │  left
+   *                   ▼
+   *                  END
+   */
   // Convenience reference.
   if (!isset($sandbox['_cm_tools_tables_walk'])) {
     $sandbox['_cm_tools_tables_walk'] = array();
@@ -589,8 +589,6 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
         '!table_name' => $table_name,
       ));
       // Deliberately fall-through, because why not?
-      //break;
-
     case 'PROCESS ROWS':
       list($table_name, $primary_columns) = $s['table'];
       $rows = array_splice($s['rows'], 0, $rows_per_pass);
