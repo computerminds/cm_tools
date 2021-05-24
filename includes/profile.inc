@@ -657,7 +657,7 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
   }
 
   if (!empty($status)) {
-    return implode($status, "\n");
+    return implode("\n", $status);
   }
 }
 
@@ -765,7 +765,7 @@ function cm_tools_field_tables_walk(array &$sandbox, callable $field_list_filter
     if ($tables & CM_TOOLS_FIELD_TABLE_REVISION) {
       $tables_str[] = 'revision';
     }
-    $tables_str = implode($tables_str, ' and ') . (count($tables_str) > 1 ? ' tables' : ' table');
+    $tables_str = implode(' and ', $tables_str) . (count($tables_str) > 1 ? ' tables' : ' table');
     $status[] = strtr('Processing the !tables for !field_count fields.', array(
       '!tables' => $tables_str,
       '!field_count' => $s['fields_count'],
@@ -819,6 +819,6 @@ function cm_tools_field_tables_walk(array &$sandbox, callable $field_list_filter
 
   $status = array_filter($status);
   if (!empty($status)) {
-    return implode($status, "\n");
+    return implode("\n", $status);
   }
 }
