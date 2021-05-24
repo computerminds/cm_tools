@@ -87,7 +87,7 @@ function cm_tools_block_position($module, $delta, array $block = array(), $all_t
     $query = db_insert('block_node_type')->fields(array(
       'type',
       'module',
-      'delta'
+      'delta',
     ));
     foreach (array_filter($types) as $type) {
       $query->values(array(

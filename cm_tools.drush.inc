@@ -214,7 +214,10 @@ function _cm_tools_drush_sql_sync_sanitize_user_module($site) {
   $message_list = array();
 
   // Sanitize passwords.
-  $newpassword = drush_get_option(array('sanitize-password', 'destination-sanitize-password'), drush_generate_password());
+  $newpassword = drush_get_option(array(
+    'sanitize-password',
+    'destination-sanitize-password'
+  ), drush_generate_password());
   if ($newpassword != 'no' && $newpassword !== 0) {
     $core = DRUSH_DRUPAL_CORE;
     include_once $core . '/includes/password.inc';
@@ -225,7 +228,10 @@ function _cm_tools_drush_sql_sync_sanitize_user_module($site) {
   }
 
   // Sanitize email addresses.
-  $newemail = drush_get_option(array('sanitize-email', 'destination-sanitize-email'), 'user+%uid@localhost.localdomain');
+  $newemail = drush_get_option(array(
+    'sanitize-email',
+    'destination-sanitize-email'
+  ), 'user+%uid@localhost.localdomain');
   if ($newemail != 'no' && $newemail !== 0) {
     if (strpos($newemail, '%') !== FALSE) {
       // We need a different sanitization query for Postgres and Mysql.
@@ -263,7 +269,10 @@ function _cm_tools_drush_sql_sync_sanitize_user_module($site) {
   }
 
   // Sanitize usernames.
-  $newusername = drush_get_option(array('sanitize-username', 'destination-sanitize-username'), 'user-%uid');
+  $newusername = drush_get_option(array(
+    'sanitize-username',
+    'destination-sanitize-username'
+  ), 'user-%uid');
   if ($newusername != 'no' && $newusername !== 0) {
     if (strpos($newusername, '%') !== FALSE) {
       // We need a different sanitization query for Postgres and Mysql.
