@@ -516,21 +516,26 @@ function cm_tools_update_missing_default_field_values_insert_with_languages(arra
  *   - FALSE: Skips row update, even if something changed.
  * @param int $rows_per_pass
  *   The number of table rows to load and process in each batch iteration.
+ * @param int|null $index_query_page_size
+ *   By default all rows are indexed for a table in a single pass. If the number
+ *   of rows matched by your index query is very large (perhaps you run into
+ *   memory issues), you can specify an integer limit to the index query.
  *
  * @return string
  *   A status message suitable for the return value of your update hook.
  */
-function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_callback, callable $work_callback, $rows_per_pass = 50) {
+function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_callback, callable $work_callback, int $rows_per_pass = 50, int $index_query_page_size = NULL) {
   /*
    *              INITIALISE
    *                   │
-   *                   │  ┌───────────────────────────────────┐
-   *          move to next table     ┌─────────────────────┐  │
-   *                   │  │          │      Next chunk     │  │
-   *           ┌───────▼──▼─────┐    │  ┌────────────────┐ │  │
+   *                   │┌───── yes ── FINISHED WITH <table>? ◄┐
+   *               move to     ┌─ no ─┘                       │
+   *             next table  next    ┌─────────────────────┐  │
+   *                   ││     page   │      Next chunk     │  │
+   *           ┌───────▼▼──────▼┐    │  ┌────────────────┐ │  │
    *           │ GATHER ROWS    │    └──► PROCESS ROWS   ├─┘  │
    *           │ - <table>      ├───────► - <table>      ├────┘
-   *           │                │ First │ - <rows chunk> │
+   *           │ - [<page>]     │ First │ - <rows chunk> │
    *           │                │ chunk └────────────────┘
    *           └───────┬────────┘
    *                   │ No tables
@@ -561,7 +566,9 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
       'state' => 'GATHER ROWS',
       'tables' => $tables,
       'table' => NULL,
+      'page' => 0,
       'rows' => array(),
+      'rows_count' => 0,
       'rows_updated' => 0,
     );
     $s['table'] = $move_to_next_table();
@@ -580,12 +587,16 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
       if (is_callable($query_alter_callback)) {
         call_user_func($query_alter_callback, $query, $table_name);
       }
+      if (isset($index_query_page_size)) {
+        $query->range($s['page'] * $index_query_page_size, $index_query_page_size);
+      }
       $s['rows'] = $query
         ->execute()
         ->fetchAll(PDO::FETCH_ASSOC);
+      $s['rows_count'] = count($s['rows']);
       $s['state'] = 'PROCESS ROWS';
       $status[] = strtr('Found !row_count rows in !table_name.', array(
-        '!row_count' => count($s['rows']),
+        '!row_count' => $s['rows_count'],
         '!table_name' => $table_name,
       ));
       // Deliberately fall-through, because why not?
@@ -599,7 +610,13 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
         ));
         $s['rows_updated'] = 0;
         $s['state'] = 'GATHER ROWS';
-        $s['table'] = $move_to_next_table();
+        // Only move to the next table if we've finished with it.
+        if (!isset($index_query_page_size) || $s['rows_count'] < $index_query_page_size) {
+          $s['table'] = $move_to_next_table();
+        }
+        else {
+          $s['page']++;
+        }
         break;
       }
       // Fetch the values for all the rows in our chunk in the same query.
@@ -724,18 +741,22 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
  *                     columns used in the primary key are ignored.
  *   - TRUE: Forces the row to be updated, even if nothing changed,
  *   - FALSE: Skips row update, even if something changed.
- * @param int $rows_per_pass
- *   The number of table rows to load and process in each batch iteration.
  * @param int $tables
  *   Integer flags indicating which field tables to include. Defaults to both
  *   'data' and 'revision' tables. Possible values are:
  *   - CM_TOOLS_FIELD_TABLE_DATA -- include field data tables only,
  *   - CM_TOOLS_FIELD_TABLE_REVISION -- include field revision tables only.
+ * @param int $rows_per_pass
+ *   The number of table rows to load and process in each batch iteration.
+ * @param int|null $index_query_page_size
+ *   By default all rows are indexed for a table in a single pass. If the number
+ *   of rows matched by your index query is very large (perhaps you run into
+ *   memory issues), you can specify an integer limit to the index query.
  *
  * @return string
  *   A status message suitable for the return value of your update hook.
  */
-function cm_tools_field_tables_walk(array &$sandbox, callable $field_list_filter_callback, callable $query_alter_callback, callable $work_callback, $rows_per_pass = 50, $tables = CM_TOOLS_FIELD_TABLE_DATA | CM_TOOLS_FIELD_TABLE_REVISION) {
+function cm_tools_field_tables_walk(array &$sandbox, callable $field_list_filter_callback, callable $query_alter_callback, callable $work_callback, int $tables = CM_TOOLS_FIELD_TABLE_DATA | CM_TOOLS_FIELD_TABLE_REVISION, int $rows_per_pass = 50, int $index_query_page_size = NULL) {
   // Convenience reference.
   if (!isset($sandbox['_cm_tools_field_tables_walk'])) {
     $sandbox['_cm_tools_field_tables_walk'] = array();
@@ -814,7 +835,9 @@ function cm_tools_field_tables_walk(array &$sandbox, callable $field_list_filter
         $s['field'],
         $s['table_type'],
       ));
-    }
+    },
+    $rows_per_pass,
+    $index_query_page_size
   );
 
   $status = array_filter($status);
