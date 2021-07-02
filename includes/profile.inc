@@ -539,12 +539,14 @@ function cm_tools_update_missing_default_field_values_insert_with_languages(arra
  *     CM_TOOLS_TABLE_PAGING_FIXED
  *       Rows will be gathered in fixed-size pages (using LIMIT/OFFSET). When
  *       using this strategy, you must ensure your query conditions match BOTH
- *       processed AND unprocessed rows, otherwise rows will be missed out.
+ *       processed AND unprocessed rows, otherwise rows will be missed out. This
+ *       may add many additional cycles if it causes many false positives.
  *     CM_TOOLS_TABLE_PAGING_REPEAT
  *       Rows will be repeatedly gathered until none more are returned. When
  *       using this strategy, you must ensure your query conditions match
  *       unprocessed rows and NEVER processed rows, otherwise we will iterate
- *       indefinitely.
+ *       indefinitely. This restriction may force more complex mysql queries
+ *       leading to issues with time outs.
  * @param int $page_size
  *   When a LIMIT is placed on the query, this indicates the page size. Defaults
  *   to 2000.
