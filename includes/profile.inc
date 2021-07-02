@@ -600,9 +600,10 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
         ->fetchAll(PDO::FETCH_ASSOC);
       $s['rows_count'] = count($s['rows']);
       $s['state'] = 'PROCESS ROWS';
-      $status[] = strtr('Found !row_count rows in !table_name.', array(
+      $status[] = strtr('Found !row_count rows in !table_name!page.', array(
         '!row_count' => $s['rows_count'],
         '!table_name' => $table_name,
+        '!page' => isset($index_query_page_size) ? ' (Page ' . $s['page'] . ')' : '',
       ));
       // Deliberately fall-through, because why not?
     case 'PROCESS ROWS':
@@ -617,6 +618,7 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
         $s['state'] = 'GATHER ROWS';
         // Only move to the next table if we've finished with it.
         if (!isset($index_query_page_size) || $s['rows_count'] < $index_query_page_size) {
+          $s['page'] = 0;
           $s['table'] = $move_to_next_table();
         }
         else {
