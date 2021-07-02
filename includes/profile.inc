@@ -480,8 +480,6 @@ function cm_tools_update_missing_default_field_values_insert_with_languages(arra
  *
  * This function is designed to work in the context of a Drupal update hook, it
  * accepts the sandbox that is passed to the update hook as its first parameter.
- * The fields to iterate over and the state of the iterations are stored in
- * the sandbox.
  *
  * Example usage:
  * @code
@@ -497,7 +495,7 @@ function cm_tools_update_missing_default_field_values_insert_with_languages(arra
  *     function($query, $table_name) {
  *       $query->condition('title', '%' . db_like('foobar') . '%', 'LIKE');
  *     },
- *     // Process row: Remove all occurances of "foobar" from the title.
+ *     // Process row: Remove all occurrences of "foobar" from the title.
  *     function(&$row, $table_name) {
  *       $row['title'] = str_replace('foobar', '', $row['title']);
  *     }
@@ -513,11 +511,13 @@ function cm_tools_update_missing_default_field_values_insert_with_languages(arra
  *   entry on demand. Each entry is an array where the 0th element is the table
  *   name and the 1st element is an array of the primary key columns.
  * @param callable $query_alter_callback
- *   A callback that receives the index query for returning rows from a field
- *   table. Conditions may be added to it to filter down the list of rows
- *   processed. It receives these arguments:
+ *   A callback that receives the index query for returning rows from a table
+ *   Conditions may be added to it to filter down the list of rows processed.
+ *   It receives these arguments:
  *   - $query - The DB select query object,
  *   - $table_name - The name of the table being queried.
+ *   Be aware that the chosen $paging strategy affects how your query should
+ *   behave. See below.
  * @param callable $work_callback
  *   The callback to apply to each row of each database table. It is called with
  *   these arguments:
@@ -534,19 +534,20 @@ function cm_tools_update_missing_default_field_values_insert_with_languages(arra
  *   Options are:
  *     CM_TOOLS_TABLE_PAGING_NONE (Default)
  *       All rows will be gathered in one pass (into one array in memory) for
- *       each table. If the query matches many rows in aby one table, this could
+ *       each table. If the query matches many rows in any one table, this could
  *       cause problems with memory limits.
  *     CM_TOOLS_TABLE_PAGING_FIXED
  *       Rows will be gathered in fixed-size pages (using LIMIT/OFFSET). When
  *       using this strategy, you must ensure your query conditions match BOTH
  *       processed AND unprocessed rows, otherwise rows will be missed out.
  *     CM_TOOLS_TABLE_PAGING_REPEAT
- *       Rows will be repeatedly gathered until no more are returned. When using
- *       this strategy, you must ensure your query conditions match unprocessed
- *       rows and NOT processed rows, otherwise we will iterate indefinitely.
+ *       Rows will be repeatedly gathered until none more are returned. When
+ *       using this strategy, you must ensure your query conditions match
+ *       unprocessed rows and NEVER processed rows, otherwise we will iterate
+ *       indefinitely.
  * @param int $page_size
  *   When a LIMIT is placed on the query, this indicates the page size. Defaults
- *   to 4000.
+ *   to 2000.
  * @param int $rows_per_pass
  *   The number of table rows to load and process in each batch iteration.
  *   Defaults to 50.
@@ -554,17 +555,17 @@ function cm_tools_update_missing_default_field_values_insert_with_languages(arra
  * @return string
  *   A status message suitable for the return value of your update hook.
  */
-function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_callback, callable $work_callback, int $paging = CM_TOOLS_TABLE_PAGING_NONE, int $page_size = 4000, int $rows_per_pass = 50) {
+function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_callback, callable $work_callback, int $paging = CM_TOOLS_TABLE_PAGING_NONE, int $page_size = 2000, int $rows_per_pass = 50) {
   /*
    *              INITIALISE
    *                   │
-   *                   │┌───── yes ── FINISHED WITH <table>? ◄┐
-   *               move to     ┌─ no ─┘                       │
-   *             next table  next    ┌─────────────────────┐  │
-   *                   ││     page   │      Next chunk     │  │
-   *           ┌───────▼▼──────▼┐    │  ┌────────────────┐ │  │
-   *           │ GATHER ROWS    │    └──► PROCESS ROWS   ├─┘  │
-   *           │ - <table>      ├───────► - <table>      ├────┘
+   *                   │┌─────── yes ── FINISHED WITH <table>? ◄─┐
+   *               move to     ┌─ no ───┘                        │
+   *             next table  next    ┌─────────────────────┐     │
+   *                   ││     page   │      Next chunk     │     │
+   *           ┌───────▼▼──────▼┐    │  ┌────────────────┐ │     │
+   *           │ GATHER ROWS    │    └──► PROCESS ROWS   ├─┘     │
+   *           │ - <table>      ├───────► - <table>      ├───────┘
    *           │ - [<page>]     │ First │ - <rows chunk> │
    *           │                │ chunk └────────────────┘
    *           └───────┬────────┘
@@ -647,6 +648,7 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
     case 'PROCESS ROWS':
       list($table_name, $primary_columns) = $s['table'];
       $rows = array_splice($s['rows'], 0, $rows_per_pass);
+      // We've hit the end of our chunk of rows. Increment page/table.
       if (empty($rows)) {
         $status[] = strtr('Updated !row_count rows in !table_name.', array(
           '!row_count' => $s['rows_updated'],
@@ -755,7 +757,7 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
  *       $value_column = _field_sql_storage_columnname($sandbox['field']['field_name'], 'value');
  *       $query->condition($value_column, '%' . db_like('foobar') . '%', 'LIKE');
  *     },
- *     // Process row: Remove all occurances of "foobar".
+ *     // Process row: Remove all occurrences of "foobar".
  *     function(&$row, $field, $table_type) {
  *       $value_column = _field_sql_storage_columnname($sandbox['field']['field_name'], 'value');
  *       $row[$value_column] = str_replace('foobar', '', $row[$value_column]);
@@ -809,7 +811,7 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
  * @return string
  *   A status message suitable for the return value of your update hook.
  */
-function cm_tools_field_tables_walk(array &$sandbox, callable $field_list_filter_callback, callable $query_alter_callback, callable $work_callback, int $tables = CM_TOOLS_FIELD_TABLE_DATA | CM_TOOLS_FIELD_TABLE_REVISION, int $paging = CM_TOOLS_TABLE_PAGING_NONE, int $page_size = 4000, int $rows_per_pass = 50) {
+function cm_tools_field_tables_walk(array &$sandbox, callable $field_list_filter_callback, callable $query_alter_callback, callable $work_callback, int $tables = CM_TOOLS_FIELD_TABLE_DATA | CM_TOOLS_FIELD_TABLE_REVISION, int $paging = CM_TOOLS_TABLE_PAGING_NONE, int $page_size = 2000, int $rows_per_pass = 50) {
   // Convenience reference.
   if (!isset($sandbox['_cm_tools_field_tables_walk'])) {
     $sandbox['_cm_tools_field_tables_walk'] = array();
