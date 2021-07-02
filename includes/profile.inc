@@ -519,7 +519,9 @@ function cm_tools_update_missing_default_field_values_insert_with_languages(arra
  * @param int|null $index_query_page_size
  *   By default all rows are indexed for a table in a single pass. If the number
  *   of rows matched by your index query is very large (perhaps you run into
- *   memory issues), you can specify an integer limit to the index query.
+ *   memory issues), you can specify a page size here to page it. When using
+ *   this parameter, it is important to ensure your index query includes even
+ *   rows you have already processed, otherwise rows will be omitted.
  *
  * @return string
  *   A status message suitable for the return value of your update hook.
@@ -588,6 +590,9 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
         call_user_func($query_alter_callback, $query, $table_name);
       }
       if (isset($index_query_page_size)) {
+        foreach ($primary_columns as $primary_column) {
+          $query->orderBy($primary_column);
+        }
         $query->range($s['page'] * $index_query_page_size, $index_query_page_size);
       }
       $s['rows'] = $query
@@ -747,11 +752,9 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
  *   - CM_TOOLS_FIELD_TABLE_DATA -- include field data tables only,
  *   - CM_TOOLS_FIELD_TABLE_REVISION -- include field revision tables only.
  * @param int $rows_per_pass
- *   The number of table rows to load and process in each batch iteration.
+ *   See cm_tools_tables_walk().
  * @param int|null $index_query_page_size
- *   By default all rows are indexed for a table in a single pass. If the number
- *   of rows matched by your index query is very large (perhaps you run into
- *   memory issues), you can specify an integer limit to the index query.
+ *   See cm_tools_tables_walk().
  *
  * @return string
  *   A status message suitable for the return value of your update hook.
