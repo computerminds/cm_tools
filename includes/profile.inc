@@ -6,14 +6,29 @@
  */
 
 /**
- * Flag used by cm_tools_update_field_tables_walk() -- include data table.
+ * Flag used by cm_tools_field_tables_walk() -- include data table.
  */
 define('CM_TOOLS_FIELD_TABLE_DATA', 1);
 
 /**
- * Flag used by cm_tools_update_field_tables_walk() -- include revision table.
+ * Flag used by cm_tools_field_tables_walk() -- include revision table.
  */
 define('CM_TOOLS_FIELD_TABLE_REVISION', 2);
+
+/**
+ * Flag used by cm_tools_tables_walk() -- gather rows in one pass.
+ */
+define('CM_TOOLS_TABLE_PAGING_NONE', 0);
+
+/**
+ * Flag used by cm_tools_tables_walk() -- gather rows in fixed-size pages.
+ */
+define('CM_TOOLS_TABLE_PAGING_FIXED', 1);
+
+/**
+ * Flag used by cm_tools_tables_walk() -- keep gathering until no rows returned.
+ */
+define('CM_TOOLS_TABLE_PAGING_REPEAT', 2);
 
 /**
  * Enables modules and throws an exception if that can't be done.
@@ -514,19 +529,32 @@ function cm_tools_update_missing_default_field_values_insert_with_languages(arra
  *                     columns used in the primary key are ignored.
  *   - TRUE: Forces the row to be updated, even if nothing changed,
  *   - FALSE: Skips row update, even if something changed.
+ * @param int $paging
+ *   Indicates whether (and how) rows should be paged when being gathered.
+ *   Options are:
+ *     CM_TOOLS_TABLE_PAGING_NONE (Default)
+ *       All rows will be gathered in one pass (into one array in memory) for
+ *       each table. If the query matches many rows in aby one table, this could
+ *       cause problems with memory limits.
+ *     CM_TOOLS_TABLE_PAGING_FIXED
+ *       Rows will be gathered in fixed-size pages (using LIMIT/OFFSET). When
+ *       using this strategy, you must ensure your query conditions match BOTH
+ *       processed AND unprocessed rows, otherwise rows will be missed out.
+ *     CM_TOOLS_TABLE_PAGING_REPEAT
+ *       Rows will be repeatedly gathered until no more are returned. When using
+ *       this strategy, you must ensure your query conditions match unprocessed
+ *       rows and NOT processed rows, otherwise we will iterate indefinitely.
+ * @param int $page_size
+ *   When a LIMIT is placed on the query, this indicates the page size. Defaults
+ *   to 4000.
  * @param int $rows_per_pass
  *   The number of table rows to load and process in each batch iteration.
- * @param int|null $index_query_page_size
- *   By default all rows are indexed for a table in a single pass. If the number
- *   of rows matched by your index query is very large (perhaps you run into
- *   memory issues), you can specify a page size here to page it. When using
- *   this parameter, it is important to ensure your index query includes even
- *   rows you have already processed, otherwise rows will be omitted.
+ *   Defaults to 50.
  *
  * @return string
  *   A status message suitable for the return value of your update hook.
  */
-function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_callback, callable $work_callback, int $rows_per_pass = 50, int $index_query_page_size = NULL) {
+function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_callback, callable $work_callback, int $paging = CM_TOOLS_TABLE_PAGING_NONE, int $page_size = 4000, int $rows_per_pass = 50) {
   /*
    *              INITIALISE
    *                   │
@@ -576,6 +604,11 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
     $s['table'] = $move_to_next_table();
   }
 
+  $page_label = 'page';
+  if ($paging === CM_TOOLS_TABLE_PAGING_REPEAT) {
+    $page_label = 'pass';
+  }
+
   switch ($s['state']) {
 
     case 'GATHER ROWS':
@@ -589,11 +622,16 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
       if (is_callable($query_alter_callback)) {
         call_user_func($query_alter_callback, $query, $table_name);
       }
-      if (isset($index_query_page_size)) {
-        foreach ($primary_columns as $primary_column) {
-          $query->orderBy($primary_column);
-        }
-        $query->range($s['page'] * $index_query_page_size, $index_query_page_size);
+      switch ($paging) {
+        case CM_TOOLS_TABLE_PAGING_FIXED:
+          foreach ($primary_columns as $primary_column) {
+            $query->orderBy($primary_column);
+          }
+          $query->range($s['page'] * $page_size, $page_size);
+          break;
+        case CM_TOOLS_TABLE_PAGING_REPEAT:
+          $query->range(NULL, $page_size);
+          break;
       }
       $s['rows'] = $query
         ->execute()
@@ -603,7 +641,7 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
       $status[] = strtr('Found !row_count rows in !table_name!page.', array(
         '!row_count' => $s['rows_count'],
         '!table_name' => $table_name,
-        '!page' => isset($index_query_page_size) ? ' (Page ' . $s['page'] . ')' : '',
+        '!page' => $paging !== CM_TOOLS_TABLE_PAGING_NONE ? " ($page_label " . $s['page'] . ')' : '',
       ));
       // Deliberately fall-through, because why not?
     case 'PROCESS ROWS':
@@ -617,7 +655,9 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
         $s['rows_updated'] = 0;
         $s['state'] = 'GATHER ROWS';
         // Only move to the next table if we've finished with it.
-        if (!isset($index_query_page_size) || $s['rows_count'] < $index_query_page_size) {
+        if ($paging === CM_TOOLS_TABLE_PAGING_NONE
+          || ($paging === CM_TOOLS_TABLE_PAGING_FIXED && $s['rows_count'] < $page_size)
+          || ($paging === CM_TOOLS_TABLE_PAGING_REPEAT) && $s['rows_count'] === 0) {
           $s['page'] = 0;
           $s['table'] = $move_to_next_table();
         }
@@ -648,6 +688,9 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
           $table_name,
         ));
         if ($return === FALSE) {
+          if ($paging === CM_TOOLS_TABLE_PAGING_REPEAT) {
+            throw new RuntimeException('When using CM_TOOLS_TABLE_PAGING_REPEAT, every row must be changed because the query must not match processed rows.');
+          }
           continue;
         }
         // If a non-primary column changed, update the DB record.
@@ -668,6 +711,9 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
             }
           }
           $s['rows_updated'] += $qry->execute();
+        }
+        elseif ($paging === CM_TOOLS_TABLE_PAGING_REPEAT) {
+          throw new RuntimeException('When using CM_TOOLS_TABLE_PAGING_REPEAT, every row must be changed because the query must not match processed rows.');
         }
       }
       break;
@@ -753,15 +799,17 @@ function cm_tools_tables_walk(array &$sandbox, $tables, callable $query_alter_ca
  *   'data' and 'revision' tables. Possible values are:
  *   - CM_TOOLS_FIELD_TABLE_DATA -- include field data tables only,
  *   - CM_TOOLS_FIELD_TABLE_REVISION -- include field revision tables only.
- * @param int $rows_per_pass
+ * @param int $paging
  *   See cm_tools_tables_walk().
- * @param int|null $index_query_page_size
+ * @param int $page_size
+ *   See cm_tools_tables_walk().
+ * @param int $rows_per_pass
  *   See cm_tools_tables_walk().
  *
  * @return string
  *   A status message suitable for the return value of your update hook.
  */
-function cm_tools_field_tables_walk(array &$sandbox, callable $field_list_filter_callback, callable $query_alter_callback, callable $work_callback, int $tables = CM_TOOLS_FIELD_TABLE_DATA | CM_TOOLS_FIELD_TABLE_REVISION, int $rows_per_pass = 50, int $index_query_page_size = NULL) {
+function cm_tools_field_tables_walk(array &$sandbox, callable $field_list_filter_callback, callable $query_alter_callback, callable $work_callback, int $tables = CM_TOOLS_FIELD_TABLE_DATA | CM_TOOLS_FIELD_TABLE_REVISION, int $paging = CM_TOOLS_TABLE_PAGING_NONE, int $page_size = 4000, int $rows_per_pass = 50) {
   // Convenience reference.
   if (!isset($sandbox['_cm_tools_field_tables_walk'])) {
     $sandbox['_cm_tools_field_tables_walk'] = array();
@@ -841,8 +889,9 @@ function cm_tools_field_tables_walk(array &$sandbox, callable $field_list_filter
         $s['table_type'],
       ));
     },
-    $rows_per_pass,
-    $index_query_page_size
+    $paging,
+    $page_size,
+    $rows_per_pass
   );
 
   $status = array_filter($status);
