@@ -853,7 +853,7 @@ function cm_tools_field_tables_walk(array &$sandbox, callable $field_list_filter
   $status[] = cm_tools_tables_walk($sandbox,
     // Move to next table callback.
     function () use (&$s, $tables) {
-      if ($tables === CM_TOOLS_FIELD_TABLE_DATA | CM_TOOLS_FIELD_TABLE_REVISION) {
+      if ($tables === CM_TOOLS_FIELD_TABLE_DATA & CM_TOOLS_FIELD_TABLE_REVISION) {
         if ($s['table_type'] === CM_TOOLS_FIELD_TABLE_DATA) {
           $s['table_type'] = CM_TOOLS_FIELD_TABLE_REVISION;
         }
