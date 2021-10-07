@@ -112,7 +112,7 @@ function cm_tools_module_disable($modules) {
  *   A callback that returns an associative array keyed by entity type where the
  *   values are arrays of entity IDs to iterate over. This will be called when
  *   needed to produce the list of entities to iterate over.
- * @param callable $work_callback
+ * @param callable|null $work_callback
  *   The callback to apply to each entity returned from the
  *   $entity_list_callback. The callback is called with two arguments:
  *   - The entity type of the entity in the second argument
@@ -120,7 +120,7 @@ function cm_tools_module_disable($modules) {
  * @param int $entities_per_pass
  *   The number of entities to load and process in each batch iteration.
  */
-function cm_tools_update_entities_walk(array &$sandbox, callable $entity_list_callback, callable $work_callback, $entities_per_pass = 10) {
+function cm_tools_update_entities_walk(array &$sandbox, callable $entity_list_callback, callable $work_callback = NULL, $entities_per_pass = 10) {
   // On the first pass through this update function compute the work to be done.
   if (!isset($sandbox['_cm_tools_update_entities_walk'])) {
     $sandbox['_cm_tools_update_entities_walk'] = array(
@@ -139,7 +139,9 @@ function cm_tools_update_entities_walk(array &$sandbox, callable $entity_list_ca
     $entity_type = key($sandbox['_cm_tools_update_entities_walk']['entities']);
     $entity_ids = array_shift($sandbox['_cm_tools_update_entities_walk']['entities'][$entity_type]);
     foreach (entity_load($entity_type, $entity_ids) as $entity) {
-      call_user_func($work_callback, $entity_type, $entity);
+      if (is_callable($work_callback)) {
+        call_user_func($work_callback, $entity_type, $entity);
+      }
       $sandbox['_cm_tools_update_entities_walk']['current']++;
     }
     // Clear up this $entity_type if we've processed all the chunks.
@@ -166,7 +168,7 @@ function cm_tools_update_entities_walk(array &$sandbox, callable $entity_list_ca
  *   from.
  * @param \EntityFieldQuery $query
  *   The EntityFieldQuery to execute and iterate over the results of.
- * @param callable $callback
+ * @param callable|null $callback
  *   The callback to apply to each entity returned from the $query. The callback
  *   is called with two arguments:
  *   - The entity type of the entity in the second argument
@@ -174,7 +176,7 @@ function cm_tools_update_entities_walk(array &$sandbox, callable $entity_list_ca
  * @param int $entities_per_pass
  *   The number of entities to load and process in each batch iteration.
  */
-function cm_tools_update_efq_walk(array &$sandbox, EntityFieldQuery $query, callable $callback, $entities_per_pass = 10) {
+function cm_tools_update_efq_walk(array &$sandbox, EntityFieldQuery $query, callable $callback = NULL, $entities_per_pass = 10) {
   $entity_list_callback = function () use ($query) {
     $result = $query->execute();
     $entities = array();
