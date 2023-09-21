@@ -1,0 +1,5 @@
+name: "ComputerMinds tools"
+type: module
+description: "A collection of tools and helpers written by ComputerMinds."
+version: 8.x-2.x
+core_version_requirement: ^10 ||  ^9
