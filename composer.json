@@ -1,0 +1,14 @@
+{
+    "name": "computerminds/cm_tools",
+    "description": "A collection of tools and helpers written by ComputerMinds.",
+    "type": "drupal-module",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Steven Jones",
+            "email": "steven.jones@computerminds.co.uk"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {}
+}
